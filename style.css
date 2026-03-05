@@ -169,6 +169,10 @@ body {
     min-width: 0;
 }
 
+#headerSampleBtn {
+    white-space: nowrap;
+}
+
 .rule-selector-container label {
     font-size: 0.875rem;
     color: var(--text-muted);
@@ -342,6 +346,10 @@ select:focus {
     .rule-selector-container select {
         flex: 1;
         min-width: 0;
+    }
+
+    #headerSampleBtn {
+        display: none;
     }
 
     .pane-header {
@@ -911,6 +919,10 @@ textarea {
     margin-top: 0.5rem;
 }
 
+.side-panel .bookmarklet-body {
+    margin-top: 0.6rem;
+}
+
 /* ブックマークレットリンク */
 .bookmarklet-link {
     display: inline-block;
@@ -926,6 +938,11 @@ textarea {
     transition: all 0.2s;
 }
 
+.side-panel .bookmarklet-link {
+    display: block;
+    text-align: center;
+}
+
 .bookmarklet-link:hover {
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
@@ -936,6 +953,10 @@ textarea {
     color: var(--text-muted);
     margin-top: 0.5rem;
     line-height: 1.6;
+}
+
+.side-panel .bookmarklet-instructions {
+    font-size: 0.78rem;
 }
 
 /* モーダルフッター — バリエーション */

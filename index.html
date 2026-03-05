@@ -24,7 +24,7 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="レギュレーション・チェッカー">
     <meta name="twitter:description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。">
-    <link rel="stylesheet" href="style.css?v=20260305d">
+    <link rel="stylesheet" href="style.css?v=20260305e">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet"
@@ -56,7 +56,7 @@
                 <select id="ruleSetSelector">
                     <option value="default">デフォルト (汎用)</option>
                 </select>
-                <span id="presetTooltip" class="preset-tooltip" aria-live="polite"></span>
+                <button id="headerSampleBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-flask"></i> サンプルを生成</button>
             </div>
             <button id="replaceBtn" class="btn btn-primary"><i class="fa-solid fa-wand-magic-sparkles"></i>
                 一括修正する</button>
@@ -146,6 +146,26 @@
             <div class="side-panel-section">
                 <button id="editRulesBtn" class="btn btn-primary btn-block"><i class="fa-solid fa-gear"></i>
                     ルールを編集する</button>
+            </div>
+
+            <div class="side-panel-section">
+                <details>
+                    <summary class="bookmarklet-summary"><i class="fa-solid fa-bookmark"></i> WordPress / note 連携ブックマークレット
+                    </summary>
+                    <div class="bookmarklet-body">
+                        <a id="bookmarkletLink" class="bookmarklet-link" href="#">✅
+                            Writer Checkerでチェック</a>
+                        <div class="bookmarklet-instructions">
+                            <p><strong>使い方：</strong></p>
+                            <ol class="bookmarklet-steps">
+                                <li>↑のボタンを<strong>ブックマークバーにドラッグ</strong>してください</li>
+                                <li>WordPressやnoteの<strong>編集画面</strong>を開きます</li>
+                                <li>ブックマークバーの<strong>「Writer Checkerでチェック」をクリック</strong></li>
+                                <li>テキストが自動でWriter Checkerに送られます！</li>
+                            </ol>
+                        </div>
+                    </div>
+                </details>
             </div>
 
             <!-- 法的リンク -->
@@ -285,26 +305,6 @@
     <!-- Toast Notification -->
     <div id="toast" class="toast hidden">コピーしました！</div>
 
-    <!-- ブックマークレット -->
-    <footer class="app-footer">
-        <details>
-            <summary class="bookmarklet-summary"><i class="fa-solid fa-bookmark"></i> WordPress / note 連携ブックマークレット
-            </summary>
-            <div class="bookmarklet-body">
-                <a id="bookmarkletLink" class="bookmarklet-link" href="#">✅
-                    Writer Checkerでチェック</a>
-                <div class="bookmarklet-instructions">
-                    <p><strong>使い方：</strong></p>
-                    <ol class="bookmarklet-steps">
-                        <li>↑のボタンを<strong>ブックマークバーにドラッグ</strong>してください</li>
-                        <li>WordPressやnoteの<strong>編集画面</strong>を開きます</li>
-                        <li>ブックマークバーの<strong>「Writer Checkerでチェック」をクリック</strong></li>
-                        <li>テキストが自動でWriter Checkerに送られます！</li>
-                    </ol>
-                </div>
-            </div>
-        </details>
-    </footer>
     <nav class="mobile-action-bar" aria-label="モバイルクイック操作">
         <button id="mobileSampleBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-flask"></i> サンプル</button>
         <button id="mobileReplaceBtn" class="btn btn-sm btn-primary" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> 修正</button>
@@ -313,7 +313,7 @@
     </nav>
 
 
-    <script type="module" src="js/app.js?v=20260305d"></script>
+    <script type="module" src="js/app.js?v=20260305e"></script>
 </body>
 
 </html>

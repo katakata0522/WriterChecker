@@ -61,6 +61,7 @@ export class UIManager {
         this.undoBtn = document.getElementById('undoBtn');
         this.sampleBtn = document.getElementById('sampleBtn');
         this.bookmarkletLink = document.getElementById('bookmarkletLink');
+        this.headerSampleBtn = document.getElementById('headerSampleBtn');
         this.activeRuleSetStatus = document.getElementById('activeRuleSetStatus');
         this.saveStateStatus = document.getElementById('saveStateStatus');
         this.matchCountStatus = document.getElementById('matchCountStatus');
@@ -169,6 +170,7 @@ export class UIManager {
                 this.rules = this.allRuleSets[this.activeSetName];
                 this.ruleEngine.setRules(this.rules);
                 this.storageManager.saveActiveSetName(this.activeSetName);
+                if (this.activeRuleSetStatus) this.activeRuleSetStatus.textContent = this.activeSetName;
                 this._updatePresetTooltip();
                 this._applyPresetAsterisk();
                 this.renderRuleToggleList();
@@ -553,6 +555,9 @@ export class UIManager {
         }
         if (this.mobileSettingsBtn && this.sidePanelToggle) {
             this.mobileSettingsBtn.addEventListener('click', () => this.sidePanelToggle.click());
+        }
+        if (this.headerSampleBtn && this.sampleBtn) {
+            this.headerSampleBtn.addEventListener('click', () => this.sampleBtn.click());
         }
     }
 
@@ -1177,9 +1182,13 @@ export class UIManager {
     // =========================================================================
 
     _updatePresetTooltip() {
-        if (!this.presetTooltip) return;
         const desc = this.storageManager.presetDescriptions[this.activeSetName];
-        this.presetTooltip.textContent = desc || `カスタムルール ${this.rules.length}件`;
+        if (this.presetTooltip) {
+            this.presetTooltip.textContent = desc || `カスタムルール ${this.rules.length}件`;
+        }
+        if (this.headerSampleBtn) {
+            this.headerSampleBtn.title = desc || `カスタムルール ${this.rules.length}件`;
+        }
     }
 
     // =========================================================================
