@@ -5,6 +5,8 @@
     "description": "レギュレーション・チェッカー — 文章の表記ユレやAI装飾をカスタムルールで一括チェック＆修正",
     "private": true,
     "scripts": {
-        "test": "node --test \"tests/*.test.mjs\""
+        "test": "node --test \"tests/*.test.mjs\"",
+        "verify:prod": "node scripts/verify-production.mjs",
+        "deploy:xserver": "powershell -ExecutionPolicy Bypass -File scripts/deploy-xserver.ps1"
     }
 }
