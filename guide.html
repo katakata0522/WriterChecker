@@ -4,8 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Writer Checker 使い方ガイド</title>
+    <title>Writer Checker 使い方ガイド | かたかたラボ</title>
+    <meta name="description" content="Writer Checkerの全機能を詳しく解説。漢字率・読了時間・原稿用紙枚数の算出方法からルールセットの活用法まで。">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <style>
         :root {
             --primary: #4f46e5;
@@ -14,6 +16,9 @@
             --text: #1e293b;
             --muted: #64748b;
             --border: #e2e8f0;
+            --success: #10b981;
+            --warn: #f59e0b;
+            --danger: #ef4444;
         }
 
         * {
@@ -27,29 +32,72 @@
             background: var(--bg);
             color: var(--text);
             line-height: 1.8;
-            max-width: 700px;
+            max-width: 760px;
             margin: 0 auto;
-            padding: 2rem 1rem;
+            padding: 2rem 1rem 4rem;
         }
 
         h1 {
             color: var(--primary);
             font-size: 1.75rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
         }
 
         .subtitle {
             color: var(--muted);
+            margin-bottom: 1.5rem;
+        }
+
+        /* 目次 */
+        .toc {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
             margin-bottom: 2rem;
+        }
+
+        .toc h2 {
+            border: none;
+            margin: 0 0 0.5rem;
+            font-size: 1rem;
+        }
+
+        .toc ol {
+            padding-left: 1.25rem;
+        }
+
+        .toc li {
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .toc a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
         }
 
         h2 {
             font-size: 1.25rem;
-            margin: 2rem 0 0.75rem;
+            margin: 2.5rem 0 0.75rem;
             padding-bottom: 0.5rem;
             border-bottom: 2px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
+        h3 {
+            font-size: 1.05rem;
+            margin: 1.25rem 0 0.5rem;
+            color: var(--text);
+        }
+
+        /* ステップカード */
         .step {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -70,11 +118,12 @@
             font-weight: 700;
             font-size: 0.85rem;
             margin-right: 0.5rem;
+            flex-shrink: 0;
         }
 
         .step h3 {
             font-size: 1rem;
-            margin-bottom: 0.5rem;
+            margin: 0 0 0.5rem;
             display: flex;
             align-items: center;
         }
@@ -84,6 +133,7 @@
             font-size: 0.9rem;
         }
 
+        /* ヒント・注意 */
         .tip {
             background: #eef2ff;
             border-left: 4px solid var(--primary);
@@ -97,6 +147,16 @@
             color: var(--primary);
         }
 
+        .warn-box {
+            background: #fefce8;
+            border-left: 4px solid var(--warn);
+            padding: 0.75rem 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        /* 機能カードグリッド */
         .feature-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -117,6 +177,49 @@
             margin-bottom: 0.25rem;
         }
 
+        /* 計算式テーブル */
+        .calc-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.75rem 0;
+            font-size: 0.875rem;
+        }
+
+        .calc-table th,
+        .calc-table td {
+            padding: 0.625rem 0.75rem;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        .calc-table th {
+            background: var(--primary);
+            color: white;
+            font-weight: 500;
+        }
+
+        .calc-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .calc-table code {
+            background: #f1f5f9;
+            padding: 0.1rem 0.35rem;
+            border-radius: 0.2rem;
+            font-size: 0.8rem;
+        }
+
+        /* 漢字率カラーインジケーター */
+        .color-indicator {
+            display: inline-block;
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 50%;
+            margin-right: 0.35rem;
+            vertical-align: middle;
+        }
+
+        /* ショートカット */
         .shortcut {
             display: inline-block;
             background: var(--border);
@@ -126,6 +229,18 @@
             font-size: 0.8rem;
         }
 
+        /* リスト共通 */
+        .content-list {
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .content-list li {
+            margin-bottom: 0.35rem;
+            font-size: 0.9rem;
+        }
+
+        /* 戻るリンク */
         .back-link {
             display: inline-block;
             margin-top: 2rem;
@@ -142,83 +257,280 @@
             .feature-grid {
                 grid-template-columns: 1fr;
             }
+
+            .calc-table {
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
 
 <body>
-    <h1>✅ Writer Checker 使い方ガイド</h1>
-    <p class="subtitle">文章の表記ゆれからAIの装飾記号まで、カスタムルールで一括チェック＆修正。</p>
+    <h1><i class="fa-solid fa-check-double"></i> Writer Checker 使い方ガイド</h1>
+    <p class="subtitle">文章の表記ゆれからAI装飾まで、カスタムルールで一括チェック＆修正できる無料ツールです。</p>
 
-    <h2>🚀 基本の使い方</h2>
+    <!-- 目次 -->
+    <nav class="toc">
+        <h2><i class="fa-solid fa-list"></i> 目次</h2>
+        <ol>
+            <li><a href="#basic">基本の使い方</a></li>
+            <li><a href="#statusbar">ステータスバーの見方</a></li>
+            <li><a href="#kanji">漢字率とは？</a></li>
+            <li><a href="#rulesets">ルールセット</a></li>
+            <li><a href="#settings">設定パネル</a></li>
+            <li><a href="#shortcuts">キーボードショートカット</a></li>
+            <li><a href="#share">共有・連携・レポート</a></li>
+            <li><a href="#faq">よくある質問</a></li>
+        </ol>
+    </nav>
+
+    <!-- 1. 基本の使い方 -->
+    <h2 id="basic"><i class="fa-solid fa-rocket"></i> 基本の使い方</h2>
 
     <div class="step">
         <h3><span class="step-number">1</span>テキストを入力</h3>
-        <p>左の「元テキスト」エリアに文章を貼り付けるか、直接入力してください。ファイルをドラッグ＆ドロップすることもできます。</p>
+        <p>左の「元テキスト」エリアに文章を貼り付けるか、直接入力してください。<strong>.txt ファイルをドラッグ＆ドロップ</strong>することもできます。</p>
     </div>
 
     <div class="step">
         <h3><span class="step-number">2</span>チェック結果を確認</h3>
-        <p>右の「チェック結果」にルールに基づいた指摘がハイライトで表示されます。ハイライトにマウスを乗せると修正候補が表示されます。</p>
+        <p>右の「チェック結果」にルールに基づいた指摘が<span
+                style="background:#fee2e2;padding:0 0.2rem;border-radius:2px;font-weight:700;">赤いハイライト</span>で表示されます。ハイライトにマウスを乗せると<strong>修正候補がツールチップ</strong>で表示されます。
+        </p>
     </div>
 
     <div class="step">
         <h3><span class="step-number">3</span>修正する</h3>
-        <p>個別にクリックして1つずつ修正するか、「一括修正する」ボタンで全て修正できます。間違えたら「元に戻す」で戻せます。</p>
+        <p>2つの修正方法があります：</p>
+        <ul class="content-list">
+            <li><strong>個別修正</strong>：ハイライトをクリックすると、その1箇所だけ修正されます</li>
+            <li><strong>一括修正</strong>：「一括修正する」ボタンで全ての指摘箇所を一度に修正します</li>
+        </ul>
+        <p>間違えた場合は<strong>「元に戻す」</strong>で修正前の状態に戻せます。</p>
     </div>
 
     <div class="tip">
-        <strong>💡 ヒント:</strong> ステータスバーの漢字率インジケーターが緑色(20〜30%)なら読みやすい文章です。
+        <strong>💡 ヒント：</strong>修正すると元テキストが直接書き換わるので、コピーして使う前に一度確認しましょう。
     </div>
 
-    <h2>📋 ルールセット</h2>
-    <p>目的に合わせてプリセットを選択できます。</p>
+    <!-- 2. ステータスバーの見方 -->
+    <h2 id="statusbar"><i class="fa-solid fa-chart-bar"></i> ステータスバーの見方</h2>
+    <p>テキストエリアの下に表示される6つの指標は、文章の「量」と「質」を一目で把握するためのものです。</p>
 
-    <div class="feature-grid">
-        <div class="feature-card">
-            <strong>デフォルト（汎用）</strong>
-            漢字→ひらがな、カタカナ長音統一の基本ルール20件
-        </div>
-        <div class="feature-card">
-            <strong>ブログ・ライター用</strong>
-            副詞・敬語・接続詞の表記ゆれを網羅した25件
-        </div>
-        <div class="feature-card">
-            <strong>ビジネスメール用</strong>
-            敬語の誤用や口語表現を丁寧表現に置換する10件
-        </div>
-        <div class="feature-card">
-            <strong>AI出力クリーン</strong>
-            ChatGPT等のMarkdown装飾を一括除去する8件
-        </div>
-    </div>
+    <table class="calc-table">
+        <thead>
+            <tr>
+                <th>指標</th>
+                <th>説明</th>
+                <th>算出方法</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>文字数</strong></td>
+                <td>空白・改行を含む全文字数</td>
+                <td><code>text.length</code></td>
+            </tr>
+            <tr>
+                <td><strong>空白なし</strong></td>
+                <td>スペース・改行・全角空白を除いた文字数</td>
+                <td>空白文字を除去してカウント</td>
+            </tr>
+            <tr>
+                <td><strong>行数</strong></td>
+                <td>改行で区切られた行の数</td>
+                <td>改行コードで分割してカウント</td>
+            </tr>
+            <tr>
+                <td><strong>原稿用紙</strong></td>
+                <td>400字詰め原稿用紙の枚数（目安）</td>
+                <td><code>空白なし文字数 ÷ 400</code>（切り上げ）</td>
+            </tr>
+            <tr>
+                <td><strong>読了時間</strong></td>
+                <td>一般的な読書速度での読了時間の目安</td>
+                <td><code>空白なし文字数 ÷ 500</code>（切り上げ）
+                    <br><small>※日本語の平均黙読速度は400〜600字/分</small>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>漢字率</strong></td>
+                <td>テキスト中の漢字の割合</td>
+                <td><code>漢字文字数 ÷ 空白なし文字数 × 100</code></td>
+            </tr>
+        </tbody>
+    </table>
 
     <div class="tip">
-        <strong>💡 カスタムルール:</strong> ⚙ボタンからルールを自由に追加・編集できます。正規表現(.*ボタン)やメモフィールドも使えます。
+        <strong>💡 なぜ「空白なし」を基準にするの？</strong>
+        文章の本質的な「量」を測るには、スペースや改行を除いた実質的な文字数が正確です。原稿用紙の枚数や読了時間も、この実質文字数を基準に算出しています。
     </div>
 
-    <h2>⌨️ キーボードショートカット</h2>
+    <!-- 3. 漢字率 -->
+    <h2 id="kanji"><i class="fa-solid fa-language"></i> 漢字率とは？</h2>
+    <p>漢字率は<strong>文章の読みやすさ</strong>を測る指標の一つです。漢字が多すぎると堅くて読みにくい印象を与え、少なすぎると幼い印象になります。</p>
+
+    <h3>漢字率の目安</h3>
+    <table class="calc-table">
+        <thead>
+            <tr>
+                <th>色</th>
+                <th>範囲</th>
+                <th>意味</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="color-indicator" style="background:#60a5fa;"></span>青</td>
+                <td>0〜19%</td>
+                <td>漢字が少なめ。ひらがな中心でやわらかい印象</td>
+            </tr>
+            <tr>
+                <td><span class="color-indicator" style="background:#10b981;"></span>緑</td>
+                <td>20〜30%</td>
+                <td><strong>✅ 適正範囲。</strong>新聞・Webメディアの平均値に近く、最も読みやすい</td>
+            </tr>
+            <tr>
+                <td><span class="color-indicator" style="background:#f59e0b;"></span>黄</td>
+                <td>31〜40%</td>
+                <td>やや漢字多め。ビジネス文書ではまだ許容範囲</td>
+            </tr>
+            <tr>
+                <td><span class="color-indicator" style="background:#ef4444;"></span>赤</td>
+                <td>41%以上</td>
+                <td>漢字が多すぎ。「漢字を開く」（ひらがなに変換する）ことを検討</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="warn-box">
+        <strong>⚠️ 注意：</strong>漢字率はあくまで目安です。専門用語が多い技術文書では自然と高くなります。ジャンルや読者層に合わせて判断してください。
+    </div>
+
+    <!-- 4. ルールセット -->
+    <h2 id="rulesets"><i class="fa-solid fa-swatchbook"></i> ルールセット</h2>
+    <p>目的に合わせてプリセットを選択できます。ドロップダウンの<code>(数字)</code>はルール件数です。</p>
+
     <div class="feature-grid">
         <div class="feature-card">
-            <strong><span class="shortcut">Ctrl + Enter</span></strong> 一括修正
+            <strong>📝 デフォルト（汎用）</strong>
+            基本の表記ゆれルール20件。「出来る→できる」「下さい→ください」など、多くのライターが揃えたい漢字の「開き」を中心に。
         </div>
         <div class="feature-card">
-            <strong><span class="shortcut">Ctrl + Shift + C</span></strong> 修正済みテキストをコピー
+            <strong>✍️ ブログ・ライター用</strong>
+            汎用に加え、副詞・敬語・接続詞の表記ゆれを網羅した25件。「全て→すべて」「更に→さらに」など。
         </div>
         <div class="feature-card">
-            <strong><span class="shortcut">Escape</span></strong> モーダルを閉じる
+            <strong>💼 ビジネスメール用</strong>
+            敬語の誤用や口語表現を丁寧表現に置換する10件。「了解しました→承知いたしました」「すいません→すみません」など。
+        </div>
+        <div class="feature-card">
+            <strong>🤖 AI出力クリーン</strong>
+            ChatGPT等のMarkdown装飾（見出し記号、リスト記号、太字記号など）を一括除去する8件。
         </div>
     </div>
 
-    <h2>🔗 共有・連携</h2>
-    <ul style="padding-left:1.5rem; margin-top:0.5rem;">
-        <li><strong>ルールセット共有:</strong> 共有ボタンでURLを生成し、チームで同じルールを使えます</li>
-        <li><strong>エクスポート/インポート:</strong> ルールをJSONファイルで保存・復元できます</li>
-        <li><strong>ブックマークレット:</strong> WordPress/noteの編集画面から直接テキストを送れます</li>
-        <li><strong>レポート出力:</strong> チェック結果をテキストファイルでダウンロードできます</li>
+    <h3>カスタムルールの作成</h3>
+    <ul class="content-list">
+        <li>「設定」ボタン → 「ルールを編集する」で編集画面を開けます</li>
+        <li><strong>検索→置換</strong>の形式で自由にルールを追加できます</li>
+        <li><strong>正規表現</strong>にも対応（.*+ ボタンで正規表現モードに切替）</li>
+        <li>ルールごとに<strong>メモ</strong>を残せます（なぜこのルールを作ったか記録）</li>
+        <li>ルールの<strong>ドラッグ並び替え</strong>で優先順位を変更できます</li>
+        <li>チェックボックスで個別のルールを<strong>一時的に無効化</strong>できます</li>
     </ul>
 
-    <a href="./" class="back-link">← Writer Checkerに戻る</a>
+    <div class="tip">
+        <strong>💡 おすすめ：</strong>まずプリセットをベースに、自分の文章で頻出する表記ゆれを追加していくと効率的です。
+    </div>
+
+    <!-- 5. 設定パネル -->
+    <h2 id="settings"><i class="fa-solid fa-sliders"></i> 設定パネル</h2>
+    <p>ヘッダー右側の「設定」ボタンで開きます。</p>
+
+    <h3>オプション</h3>
+    <ul class="content-list">
+        <li><strong>アスタリスク装飾を削除</strong>：AI（ChatGPT等）が出力する <code>**太字**</code> や <code>*斜体*</code>
+            のアスタリスク記号を自動検出・削除します。ONにしておくとAI出力のコピペが楽になります。</li>
+        <li><strong>指摘のみモード</strong>：ONにすると、修正候補の差分プレビュー（ハイライトの横に表示される緑色のテキスト）が非表示になり、指摘箇所の確認に集中できます。</li>
+    </ul>
+
+    <h3>ルール一覧（サイドパネル内）</h3>
+    <p>現在のルールセットに含まれるルールが一覧表示されます。チェックボックスで個別にオン/オフを切り替えると、<strong>即座にチェック結果に反映</strong>されます。</p>
+
+    <h3>データ管理</h3>
+    <ul class="content-list">
+        <li><strong>エクスポート</strong>：現在の全ルールセットをJSONファイルとして保存</li>
+        <li><strong>インポート</strong>：保存したJSONファイルからルールを復元</li>
+        <li><strong>共有リンク</strong>：ルールセットをURLに埋め込み、他の人と共有</li>
+    </ul>
+
+    <!-- 6. キーボードショートカット -->
+    <h2 id="shortcuts"><i class="fa-solid fa-keyboard"></i> キーボードショートカット</h2>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <strong><span class="shortcut">Ctrl + Enter</span></strong>
+            一括修正を実行
+        </div>
+        <div class="feature-card">
+            <strong><span class="shortcut">Ctrl + Shift + C</span></strong>
+            修正済みテキストをコピー
+        </div>
+        <div class="feature-card">
+            <strong><span class="shortcut">Ctrl + Z</span></strong>
+            テキストエリアで「元に戻す」（通常のブラウザ機能）
+        </div>
+        <div class="feature-card">
+            <strong><span class="shortcut">Escape</span></strong>
+            モーダル / サイドパネルを閉じる
+        </div>
+    </div>
+
+    <!-- 7. 共有・連携 -->
+    <h2 id="share"><i class="fa-solid fa-share-nodes"></i> 共有・連携・レポート</h2>
+
+    <h3>ルールセット共有</h3>
+    <p>「共有リンク」ボタンを押すと、現在のルールセットがURLに埋め込まれます。そのURLを開くだけで同じルールが自動インポートされるため、<strong>チーム内でのレギュレーション統一</strong>に便利です。</p>
+
+    <h3>レポート出力</h3>
+    <p>「レポート」ボタンでチェック結果をテキストファイルとしてダウンロードできます。どの表記が何件見つかったかが記録され、<strong>納品物のクオリティチェックの証跡</strong>として使えます。</p>
+
+    <h3>ブックマークレット</h3>
+    <p>ページ下部の「WordPress / note
+        連携ブックマークレット」から、ブラウザのブックマークバーにドラッグ＆ドロップで登録できます。WordPressやnoteの<strong>編集画面で1クリックするだけでテキストが自動送信</strong>され、画面を行き来する手間が省けます。
+    </p>
+
+    <!-- 8. FAQ -->
+    <h2 id="faq"><i class="fa-solid fa-circle-question"></i> よくある質問</h2>
+
+    <div class="step">
+        <h3>Q. データはどこに保存されますか？</h3>
+        <p>ルールセットや設定は全て<strong>ブラウザのローカルストレージ</strong>に保存されます。サーバーには一切送信されません。ただし、ブラウザの「閲覧データ消去」を行うとルールも消えるため、大切なルールは「エクスポート」で定期的にバックアップすることをおすすめします。
+        </p>
+    </div>
+
+    <div class="step">
+        <h3>Q. 正規表現ルールとは？</h3>
+        <p>正規表現を使うと「パターン」でマッチングできます。例: <code>\d{3}-\d{4}</code> で「123-4567」のような郵便番号を検出できます。ルール編集画面の <code>.*</code>
+            ボタンを押すと正規表現モードに切り替わります。</p>
+    </div>
+
+    <div class="step">
+        <h3>Q. 読了時間の「500文字/分」は正確ですか？</h3>
+        <p>日本語の黙読速度は研究によって400〜600字/分と幅がありますが、<strong>500字/分</strong>は最も広く使われている中央値です。あくまで「だいたいの目安」としてお使いください。</p>
+    </div>
+
+    <div class="step">
+        <h3>Q. スマートフォンでも使えますか？</h3>
+        <p>はい。レスポンシブ対応しているため、スマートフォンのブラウザからも利用できます。ただし、長文の編集はPC環境を推奨します。</p>
+    </div>
+
+    <div class="step">
+        <h3>Q. オフラインで使えますか？</h3>
+        <p>現在はオンライン環境が必要です。ただし、テキストの解析は全てブラウザ内で完結するため、<strong>外部サーバーへの通信は発生しません</strong>。</p>
+    </div>
+
+    <a href="./" class="back-link"><i class="fa-solid fa-arrow-left"></i> Writer Checkerに戻る</a>
 </body>
 
 </html>
