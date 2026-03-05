@@ -43,6 +43,7 @@ async function main() {
         [toAbsolute('js/UIManager.js'), 'application/javascript'],
         [toAbsolute('js/StorageManager.js'), 'application/javascript'],
         [toAbsolute('js/RuleEngine.js'), 'application/javascript'],
+        [toAbsolute('js/AnalyticsManager.js'), 'application/javascript'],
         [toAbsolute('js/PWAManager.js'), 'application/javascript'],
         [toAbsolute('manifest.json'), null],
         [toAbsolute('sw.js'), null],

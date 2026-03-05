@@ -4,7 +4,7 @@
  * - 静的アセット: stale-while-revalidate
  */
 
-const CACHE_VERSION = '20260306c';
+const CACHE_VERSION = '20260306d';
 const STATIC_CACHE_NAME = `writer-checker-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `writer-checker-runtime-${CACHE_VERSION}`;
 
@@ -21,6 +21,7 @@ const APP_SHELL = [
     './js/UIManager.js',
     './js/StorageManager.js',
     './js/RuleEngine.js',
+    './js/AnalyticsManager.js',
     './vendor/fontawesome/css/all.min.css',
     './vendor/fontawesome/webfonts/fa-solid-900.woff2',
     './vendor/fontawesome/webfonts/fa-regular-400.woff2',

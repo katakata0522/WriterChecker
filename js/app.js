@@ -6,12 +6,15 @@ import { StorageManager } from './StorageManager.js';
 import { RuleEngine } from './RuleEngine.js';
 import { UIManager } from './UIManager.js';
 import { initPWA } from './PWAManager.js';
+import { AnalyticsManager } from './AnalyticsManager.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const storageManager = new StorageManager();
     const ruleEngine = new RuleEngine();
-    const uiManager = new UIManager(storageManager, ruleEngine);
+    const analyticsManager = new AnalyticsManager();
+    const uiManager = new UIManager(storageManager, ruleEngine, analyticsManager);
 
+    analyticsManager.track('app_loaded', analyticsManager.getMeasurementReadiness());
     uiManager.analyzeText();
     initPWA();
 });

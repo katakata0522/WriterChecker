@@ -3,9 +3,10 @@
  * UIの初期化、イベントバインド、テキスト解析、ルール管理を担うメインクラス。
  */
 export class UIManager {
-    constructor(storageManager, ruleEngine) {
+    constructor(storageManager, ruleEngine, analyticsManager = null) {
         this.storageManager = storageManager;
         this.ruleEngine = ruleEngine;
+        this.analyticsManager = analyticsManager;
 
         // ルールセット読み込み
         this.allRuleSets = this.storageManager.loadAllRuleSets();
@@ -33,6 +34,8 @@ export class UIManager {
             diff: false
         };
         this._latestAnalysis = null;
+        this._hasTrackedInputStart = false;
+        this._lastTrackedAnalysisKey = '';
 
         this._cacheElements();
         this._bindEvents();
@@ -180,6 +183,10 @@ export class UIManager {
                 this._applyPresetAsterisk();
                 this.renderRuleToggleList();
                 this.analyzeText();
+                this._track('ruleset_changed', {
+                    ruleset_name: this.activeSetName,
+                    ruleset_count: this.rules.length
+                });
             };
             // C-2: 未保存のカスタムルールがあれば確認
             if (this._hasUnsavedEdits) {
@@ -254,6 +261,7 @@ export class UIManager {
             this._showConfirm(
                 `ルールセット「${this.activeSetName}」を削除してもよろしいですか？\nこの操作は元に戻せません。`,
                 () => {
+                    const deletedSetName = this.activeSetName;
                     delete this.allRuleSets[this.activeSetName];
                     this.activeSetName = Object.keys(this.allRuleSets)[0];
                     this.rules = this.allRuleSets[this.activeSetName];
@@ -263,6 +271,7 @@ export class UIManager {
                     this.populateRuleSetSelector();
                     this.analyzeText();
                     this._showToast('ルールセットを削除しました');
+                    this._track('ruleset_deleted', { ruleset_name: deletedSetName });
                 },
                 { okText: '削除する', danger: true }
             );
@@ -282,6 +291,9 @@ export class UIManager {
                 a.click();
                 URL.revokeObjectURL(url);
                 this._showToast('ルールをエクスポートしました');
+                this._track('rules_exported', {
+                    ruleset_total: Object.keys(this.allRuleSets).length
+                });
             });
         });
 
@@ -291,8 +303,10 @@ export class UIManager {
                 try {
                     await navigator.clipboard.writeText(link);
                     this._showToast('共有リンクをコピーしました！', 'fa-link');
+                    this._track('rules_share_link_copied', { ruleset_name: this.activeSetName });
                 } catch {
                     this._showToast('コピーに失敗しました', 'fa-triangle-exclamation');
+                    this._track('rules_share_link_failed', { ruleset_name: this.activeSetName });
                 }
             });
         });
@@ -312,6 +326,10 @@ export class UIManager {
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     this._processImportedJSON(event.target.result);
+                    this._track('rules_imported_file', {
+                        file_name: file.name.slice(0, 80),
+                        file_size: file.size
+                    });
                     input.value = '';
                 };
                 reader.readAsText(file);
@@ -390,7 +408,15 @@ export class UIManager {
         }
 
         // テキスト入力
-        this.sourceText.addEventListener('input', () => this._analyzeTextDebounced());
+        this.sourceText.addEventListener('input', () => {
+            if (!this._hasTrackedInputStart && this.sourceText.value.trim().length > 0) {
+                this._hasTrackedInputStart = true;
+                this._track('text_input_started', {
+                    ruleset_name: this.activeSetName
+                });
+            }
+            this._analyzeTextDebounced();
+        });
 
         this.clearBtn.addEventListener('click', () => {
             if (this.sourceText.value) {
@@ -401,6 +427,7 @@ export class UIManager {
             this.sourceText.value = '';
             this.analyzeText();
             this.sourceText.focus();
+            this._track('text_cleared', {});
         });
 
         // A-2: サンプルテキスト挿入
@@ -415,8 +442,12 @@ export class UIManager {
                 const text = await navigator.clipboard.readText();
                 this._replaceTextareaContent(text);
                 this.analyzeText();
+                this._track('text_pasted_clipboard', {
+                    text_length: text.length
+                });
             } catch {
                 this._showToast('クリップボードにアクセスできませんでした', 'fa-triangle-exclamation');
+                this._track('text_paste_failed', {});
             }
         });
 
@@ -426,8 +457,14 @@ export class UIManager {
             try {
                 await navigator.clipboard.writeText(textToCopy);
                 this._showToast('結果をコピーしました！');
+                this._track('result_copied', {
+                    text_length: textToCopy.length
+                });
             } catch {
                 this._fallbackCopy(textToCopy);
+                this._track('result_copy_fallback', {
+                    text_length: textToCopy.length
+                });
             }
         });
 
@@ -445,6 +482,9 @@ export class UIManager {
             this.analyzeText();
             this._showDiffView(changes);
             this.undoBtn.style.display = '';
+            this._track('replace_all_applied', {
+                change_count: changes.length
+            });
         });
 
         // Undoボタン
@@ -455,6 +495,7 @@ export class UIManager {
             this.analyzeText();
             this._showToast('元に戻しました', 'fa-rotate-left');
             if (this._undoStack.length === 0) this.undoBtn.style.display = 'none';
+            this._track('undo_applied', {});
         });
 
         // 個別クリック修正 (F-10: 確認ポップアップ付き / F-13: 指摘のみモード対応)
@@ -842,6 +883,18 @@ export class UIManager {
         };
         this._updateWritingScoreStatus(writingScore);
         this._updateComprehensiveStatus(comprehensiveSummary);
+
+        const analysisKey = `${matchCount}:${writingScore.score}:${metrics.noSpaceChars}:${this.activeSetName}`;
+        if (analysisKey !== this._lastTrackedAnalysisKey) {
+            this._lastTrackedAnalysisKey = analysisKey;
+            this._track('text_analyzed', {
+                match_count: matchCount,
+                score: writingScore.score,
+                confidence: writingScore.confidence,
+                text_length: metrics.noSpaceChars,
+                ruleset_name: this.activeSetName
+            });
+        }
     }
 
     _updateStatusBar(text) {
@@ -960,23 +1013,32 @@ export class UIManager {
     }
 
     _calculateWritingScore({ text, matchCount, doubleHonorificIssues = [], metrics = null } = {}) {
-        const resolvedMetrics = metrics || this._collectTextMetrics(text || '');
+        const baseMetrics = this._collectTextMetrics(text || '');
+        const resolvedMetrics = metrics
+            ? { ...baseMetrics, ...metrics }
+            : baseMetrics;
         const safeMatchCount = Number.isFinite(matchCount) ? Math.max(0, matchCount) : 0;
         const safeDoubleHonorificCount = Array.isArray(doubleHonorificIssues) ? doubleHonorificIssues.length : 0;
+        const chars = Math.max(1, resolvedMetrics.noSpaceChars || 0);
+        const sentenceCount = Math.max(1, resolvedMetrics.sentenceCount || baseMetrics.sentenceCount || 0);
+
+        // 文字数に対する違反密度で計算し、短文/長文の不公平を抑える
+        const ruleDensityPer100 = (safeMatchCount / chars) * 100;
+        const honorificDensityPer100 = (safeDoubleHonorificCount / chars) * 100;
 
         let score = 100;
         const penalties = [];
 
-        const rulePenalty = Math.min(safeMatchCount * 3, 45);
+        const rulePenalty = Math.min(ruleDensityPer100 * 7, 45);
         if (rulePenalty > 0) {
             score -= rulePenalty;
-            penalties.push({ label: 'ルール違反', value: rulePenalty });
+            penalties.push({ label: 'ルール違反', value: Math.round(rulePenalty * 10) / 10 });
         }
 
-        const honorificPenalty = Math.min(safeDoubleHonorificCount * 8, 24);
+        const honorificPenalty = Math.min(honorificDensityPer100 * 24, 26);
         if (honorificPenalty > 0) {
             score -= honorificPenalty;
-            penalties.push({ label: '二重敬語', value: honorificPenalty });
+            penalties.push({ label: '二重敬語', value: Math.round(honorificPenalty * 10) / 10 });
         }
 
         if (resolvedMetrics.noSpaceChars < 30) {
@@ -1003,19 +1065,28 @@ export class UIManager {
             penalties.push({ label: '漢字率バランス', value: 3 });
         }
 
+        if (sentenceCount < 2) {
+            score -= 5;
+            penalties.push({ label: '文数不足', value: 5 });
+        }
+
         const normalizedScore = Math.max(0, Math.min(100, Math.round(score)));
         const level = normalizedScore >= 85 ? 'good' : normalizedScore >= 65 ? 'warn' : 'bad';
         const grade = normalizedScore >= 95 ? 'S'
             : normalizedScore >= 85 ? 'A'
                 : normalizedScore >= 75 ? 'B'
-                    : normalizedScore >= 65 ? 'C'
+                : normalizedScore >= 65 ? 'C'
                         : normalizedScore >= 50 ? 'D'
                             : 'E';
+        const confidence = resolvedMetrics.noSpaceChars >= 100 && sentenceCount >= 3 ? 'high'
+            : resolvedMetrics.noSpaceChars >= 40 && sentenceCount >= 2 ? 'medium'
+                : 'low';
 
         return {
             score: normalizedScore,
             grade,
             level,
+            confidence,
             penalties
         };
     }
@@ -1145,11 +1216,15 @@ export class UIManager {
         this._setGuideStepDone('sample');
         this.analyzeText();
         this._showToast('サンプルテキストを挿入しました', 'fa-flask');
+        this._track('sample_inserted', {
+            text_length: sample.length
+        });
     }
 
     _openFullCheckModalFromCurrentText() {
         if (!this.sourceText.value) {
             this._showToast('テキストが入力されていません', 'fa-info-circle');
+            this._track('full_check_open_failed', { reason: 'empty_text' });
             return;
         }
 
@@ -1159,6 +1234,10 @@ export class UIManager {
         if (!this._latestAnalysis) return;
 
         this._showComprehensiveCheckModal(this._latestAnalysis);
+        this._track('full_check_opened', {
+            status: this._latestAnalysis.comprehensiveSummary.status,
+            score: this._latestAnalysis.writingScore.score
+        });
     }
 
     _showComprehensiveCheckModal(analysis) {
@@ -1201,7 +1280,7 @@ export class UIManager {
         const scoreMeta = modal.querySelector('#fullCheckScoreMeta');
         scoreValue.textContent = `${analysis.writingScore.score}点 (${analysis.writingScore.grade})`;
         scoreValue.classList.add(`is-${analysis.writingScore.level}`);
-        scoreMeta.textContent = `全部盛り判定: ${analysis.comprehensiveSummary.status} / 検出: ${analysis.matchCount}件`;
+        scoreMeta.textContent = `全部盛り判定: ${analysis.comprehensiveSummary.status} / 信頼度: ${analysis.writingScore.confidence.toUpperCase()} / 検出: ${analysis.matchCount}件`;
 
         const checksEl = modal.querySelector('#comprehensiveCheckList');
         for (const item of analysis.comprehensiveSummary.items) {
@@ -1256,12 +1335,17 @@ export class UIManager {
         if (!analysis?.writingScore || !analysis?.comprehensiveSummary) {
             return 'Writer Checkerで文章チェック中です。 #WriterChecker';
         }
+        const variant = this.analyticsManager?.getExperimentVariant('x_share_copy', ['challenge', 'insight']) || 'challenge';
+        if (variant === 'insight') {
+            return `Writer Checker診断: ${analysis.writingScore.score}点 (${analysis.writingScore.grade}) / 判定「${analysis.comprehensiveSummary.status}」 / 信頼度${analysis.writingScore.confidence.toUpperCase()}。文章品質を上げたい人向けです。 #WriterChecker`;
+        }
         return `私の文章スコアは${analysis.writingScore.score}点（${analysis.writingScore.grade}）、全部盛り判定は「${analysis.comprehensiveSummary.status}」。あなたは何点？ #WriterChecker`;
     }
 
     async _shareScoreToX() {
         if (!this.sourceText.value) {
             this._showToast('テキストを入力してから共有してください', 'fa-info-circle');
+            this._track('score_share_failed', { reason: 'empty_text' });
             return;
         }
 
@@ -1271,18 +1355,34 @@ export class UIManager {
         if (!this._latestAnalysis) return;
 
         const shareText = this._buildScoreShareText(this._latestAnalysis);
-        const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(location.href)}`;
+        const variant = this.analyticsManager?.getExperimentVariant('x_share_copy', ['challenge', 'insight']) || 'challenge';
+        const shareUrl = new URL(location.href);
+        shareUrl.searchParams.set('utm_source', 'x');
+        shareUrl.searchParams.set('utm_medium', 'social');
+        shareUrl.searchParams.set('utm_campaign', `score_share_${variant}`);
+        const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl.toString())}`;
         const popup = window.open(intentUrl, '_blank', 'noopener,noreferrer');
         if (popup) {
             this._showToast('X共有画面を開きました', 'fa-brands fa-x-twitter');
+            this._track('score_shared_x', {
+                score: this._latestAnalysis.writingScore.score,
+                grade: this._latestAnalysis.writingScore.grade,
+                status: this._latestAnalysis.comprehensiveSummary.status,
+                variant
+            });
             return;
         }
 
         try {
-            await navigator.clipboard.writeText(`${shareText}\n${location.href}`);
+            await navigator.clipboard.writeText(`${shareText}\n${shareUrl.toString()}`);
             this._showToast('ポップアップがブロックされたため共有文をコピーしました', 'fa-copy');
+            this._track('score_share_clipboard_fallback', {
+                score: this._latestAnalysis.writingScore.score,
+                variant
+            });
         } catch {
             this._showToast('共有ウィンドウを開けませんでした', 'fa-triangle-exclamation');
+            this._track('score_share_failed', { reason: 'popup_blocked', variant });
         }
     }
 
@@ -1293,6 +1393,15 @@ export class UIManager {
     _markRulesDirty() {
         this._hasUnsavedEdits = true;
         this._updateSaveStateStatus();
+    }
+
+    _track(eventName, params = {}) {
+        try {
+            if (!this.analyticsManager) return;
+            this.analyticsManager.track(eventName, params);
+        } catch {
+            // 計測失敗はUI動作に影響させない
+        }
     }
 
     _createRuleSet(name) {
@@ -1307,6 +1416,7 @@ export class UIManager {
         this.ruleEngine.setRules(this.rules);
         this.populateRuleSetSelector();
         this.analyzeText();
+        this._track('ruleset_created', { ruleset_name: name });
         return true;
     }
 
@@ -1537,12 +1647,18 @@ export class UIManager {
                     msg += `（上書き: ${overwrittenKeys.join(', ')}）`;
                 }
                 this._showToast(msg);
+                this._track('rules_imported', {
+                    import_count: importCount,
+                    skipped_count: skippedCount
+                });
             } else {
                 this._showToast('有効なルールセットが見つかりませんでした。各ルールに「target」プロパティが必要です。', 'fa-triangle-exclamation');
+                this._track('rules_import_failed', { reason: 'no_valid_ruleset' });
             }
         } catch (err) {
             console.error('Import error', err);
             this._showToast('予期しないエラーが発生しました。ファイルの内容を確認してください。', 'fa-triangle-exclamation');
+            this._track('rules_import_failed', { reason: 'unexpected_error' });
         }
     }
 
@@ -1830,6 +1946,7 @@ export class UIManager {
         report += `文字数: ${metrics.totalChars} / 空白なし: ${metrics.noSpaceChars}\n`;
         report += `漢字率: ${metrics.kanjiPercent}%\n`;
         report += `文章スコア: ${writingScore.score}点 (${writingScore.grade})\n`;
+        report += `スコア信頼度: ${writingScore.confidence.toUpperCase()}\n`;
         report += `全部盛り判定: ${comprehensiveSummary.status}\n`;
         report += `二重敬語: ${doubleHonorificIssues.length}件\n`;
         report += `検出数: ${changes.length}件\n\n`;
@@ -1859,6 +1976,11 @@ export class UIManager {
         a.click();
         URL.revokeObjectURL(url);
         this._showToast('レポートをダウンロードしました');
+        this._track('report_exported', {
+            score: writingScore.score,
+            status: comprehensiveSummary.status,
+            issue_count: changes.length
+        });
     }
 
     // =========================================================================

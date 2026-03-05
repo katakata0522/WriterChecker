@@ -22,4 +22,15 @@ describe('Lighthouse fixes guard', () => {
         const css = fs.readFileSync(stylePath, 'utf-8');
         assert.match(css, /\.badge-free\s*\{[^}]*color:\s*#052e16;/);
     });
+
+    it('OGP画像とTwitter画像メタが設定されている', () => {
+        const html = fs.readFileSync(indexPath, 'utf-8');
+        assert.match(html, /property="og:image"/);
+        assert.match(html, /name="twitter:image"/);
+    });
+
+    it('FAQの構造化データが含まれている', () => {
+        const html = fs.readFileSync(indexPath, 'utf-8');
+        assert.match(html, /"@type":\s*"FAQPage"/);
+    });
 });

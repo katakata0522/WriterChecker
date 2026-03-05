@@ -26,9 +26,15 @@
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="かたかたラボ">
     <meta property="og:url" content="https://katakatalab.com/writer-checker/">
+    <meta property="og:image" content="https://katakatalab.com/writer-checker/icons/pwa-512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="Writer Checker スコア診断画面">
     <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@katakata0522">
     <meta name="twitter:title" content="レギュレーション・チェッカー">
     <meta name="twitter:description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。">
+    <meta name="twitter:image" content="https://katakatalab.com/writer-checker/icons/pwa-512.png">
     <link rel="stylesheet" href="style.min.css?v=20260306f">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
@@ -42,6 +48,36 @@
         "applicationCategory": "UtilityApplication",
         "operatingSystem": "All",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" }
+    }</script>
+    <script type="application/ld+json">{
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "Writer Checkerは無料で使えますか？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "はい。Writer Checkerは無料で使えます。ルールセットの切り替えや一括修正、文章スコア診断に対応しています。"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "どんな文章に向いていますか？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "ブログ記事、ビジネスメール、AI生成文の整形など、日本語表記ゆれや敬語チェックが必要な文章に向いています。"
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "文章スコアは何を基準に算出されますか？",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "検出件数密度、二重敬語、文の長さ、漢字率、文章量を組み合わせて0〜100点で算出します。"
+                }
+            }
+        ]
     }</script>
 </head>
 
@@ -314,7 +350,7 @@
     </nav>
 
 
-    <script type="module" src="js/app.js?v=20260306b"></script>
+    <script type="module" src="js/app.js?v=20260306c"></script>
 </body>
 
 </html>

@@ -201,4 +201,61 @@ describe('UIManager: スコアリングと全部盛り判定', () => {
         assert.ok(summary.items.some((item) => item.id === 'rule_violations' && item.level === 'fail'));
         assert.ok(summary.items.some((item) => item.id === 'double_honorific' && item.level === 'fail'));
     });
+
+    it('同じ違反密度なら短文と長文でスコア差が開きすぎない', () => {
+        const manager = Object.create(UIManager.prototype);
+
+        const short = manager._calculateWritingScore({
+            text: 'あ'.repeat(50),
+            matchCount: 2,
+            doubleHonorificIssues: [],
+            metrics: {
+                noSpaceChars: 50,
+                averageSentenceLength: 25,
+                kanjiPercent: 25
+            }
+        });
+
+        const long = manager._calculateWritingScore({
+            text: 'あ'.repeat(200),
+            matchCount: 8,
+            doubleHonorificIssues: [],
+            metrics: {
+                noSpaceChars: 200,
+                averageSentenceLength: 25,
+                kanjiPercent: 25
+            }
+        });
+
+        assert.ok(Math.abs(short.score - long.score) <= 6);
+    });
+
+    it('十分な文字数がある文章はスコア信頼度がhighになる', () => {
+        const manager = Object.create(UIManager.prototype);
+
+        const short = manager._calculateWritingScore({
+            text: '短文です。',
+            matchCount: 0,
+            doubleHonorificIssues: [],
+            metrics: {
+                noSpaceChars: 8,
+                averageSentenceLength: 8,
+                kanjiPercent: 20
+            }
+        });
+
+        const long = manager._calculateWritingScore({
+            text: '本日はご連絡ありがとうございます。内容を確認のうえ、明日までに回答いたします。'.repeat(3),
+            matchCount: 0,
+            doubleHonorificIssues: [],
+            metrics: {
+                noSpaceChars: 120,
+                averageSentenceLength: 40,
+                kanjiPercent: 28
+            }
+        });
+
+        assert.strictEqual(short.confidence, 'low');
+        assert.strictEqual(long.confidence, 'high');
+    });
 });

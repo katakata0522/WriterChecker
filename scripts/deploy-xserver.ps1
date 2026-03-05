@@ -46,10 +46,10 @@ $dirs = @(
 
 Push-Location $ProjectDir
 try {
-    Write-Host "Building minified CSS..."
-    & node "$ProjectDir/scripts/build-css.mjs"
+    Write-Host "Running QA gate..."
+    & npm run qa:gate
     if ($LASTEXITCODE -ne 0) {
-        throw "Failed to build CSS."
+        throw "QA gate failed."
     }
 
     $remoteTarget = "${SshUser}@${SshHost}:$RemoteDir/"
