@@ -6,17 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>レギュレーション・チェッカー | かたかたラボ</title>
     <meta name="description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。無料で使えるライター向け校正ツール。">
+    <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+    <meta name="application-name" content="Writer Checker">
     <meta name="theme-color" content="#4f46e5">
+    <link rel="canonical" href="https://katakatalab.com/writer-checker/">
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+    <link rel="manifest" href="manifest.json">
 
     <!-- OGP -->
     <meta property="og:title" content="レギュレーション・チェッカー">
     <meta property="og:description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="かたかたラボ">
+    <meta property="og:url" content="https://katakatalab.com/writer-checker/">
     <meta name="twitter:card" content="summary">
-    <link rel="stylesheet" href="style.css?v=20260305b">
+    <meta name="twitter:title" content="レギュレーション・チェッカー">
+    <meta name="twitter:description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。">
+    <link rel="stylesheet" href="style.css?v=20260305c">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet"
@@ -28,6 +36,7 @@
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "レギュレーション・チェッカー",
+        "url": "https://katakatalab.com/writer-checker/",
         "description": "文章の表記ユレやAI装飾をカスタムルールで一括チェック＆修正する無料ツール",
         "applicationCategory": "UtilityApplication",
         "operatingSystem": "All",
@@ -42,9 +51,13 @@
             <span class="badge badge-free">FREE</span>
         </div>
         <div class="header-right">
-            <select id="ruleSetSelector">
-                <option value="default">デフォルト (汎用)</option>
-            </select>
+            <div class="rule-selector-container">
+                <label for="ruleSetSelector">ルールセット</label>
+                <select id="ruleSetSelector">
+                    <option value="default">デフォルト (汎用)</option>
+                </select>
+                <span id="presetTooltip" class="preset-tooltip" aria-live="polite"></span>
+            </div>
             <button id="replaceBtn" class="btn btn-primary"><i class="fa-solid fa-wand-magic-sparkles"></i>
                 一括修正する</button>
             <button id="sidePanelToggle" class="btn btn-side-toggle" title="設定・ルール管理"><i class="fa-solid fa-bars"></i>
@@ -205,15 +218,15 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer modal-footer--split">
+                <div class="modal-footer modal-footer--split">
                 <div class="modal-footer-left">
-                    <button id="exportRulesBtn" class="btn btn-sm btn-outline" title="ルールをJSONファイルとしてダウンロード"><i
+                    <button id="exportRulesBtnModal" class="btn btn-sm btn-outline" title="ルールをJSONファイルとしてダウンロード"><i
                             class="fa-solid fa-download"></i> エクスポート</button>
-                    <button id="importRulesBtn" class="btn btn-sm btn-outline" title="JSONファイルからルールを読み込む"><i
+                    <button id="importRulesBtnModal" class="btn btn-sm btn-outline" title="JSONファイルからルールを読み込む"><i
                             class="fa-solid fa-file-import"></i> インポート</button>
-                    <button id="shareRulesBtn" class="btn btn-sm btn-outline" title="現在のルールセットの共有リンクをコピー"><i
+                    <button id="shareRulesBtnModal" class="btn btn-sm btn-outline" title="現在のルールセットの共有リンクをコピー"><i
                             class="fa-solid fa-link"></i> 共有</button>
-                    <input type="file" id="importFileInput" accept=".json" style="display: none;">
+                    <input type="file" id="importFileInputModal" accept=".json" style="display: none;">
                 </div>
                 <button id="saveRulesBtn" class="btn btn-primary">設定を保存</button>
             </div>
@@ -264,8 +277,7 @@
             <summary class="bookmarklet-summary"><i class="fa-solid fa-bookmark"></i> WordPress / note 連携ブックマークレット
             </summary>
             <div class="bookmarklet-body">
-                <a class="bookmarklet-link"
-                    href="javascript:void(function(){var t=document.querySelector('textarea,div[contenteditable=true],.ProseMirror,.ql-editor,[role=textbox]');if(!t){alert('\u30c6\u30ad\u30b9\u30c8\u30a8\u30ea\u30a2\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093');return;}var txt=t.innerText||t.value||'';if(!txt){alert('\u30c6\u30ad\u30b9\u30c8\u304c\u7a7a\u3067\u3059');return;}var w=window.open(location.origin+location.pathname,'WriterChecker');setTimeout(function(){w.postMessage({type:'writerChecker',text:txt},'*');},1500);}())">✅
+                <a id="bookmarkletLink" class="bookmarklet-link" href="#">✅
                     Writer Checkerでチェック</a>
                 <div class="bookmarklet-instructions">
                     <p><strong>使い方：</strong></p>
@@ -281,7 +293,7 @@
     </footer>
 
 
-    <script type="module" src="js/app.js?v=20260305b"></script>
+    <script type="module" src="js/app.js?v=20260305c"></script>
 </body>
 
 </html>

@@ -9,6 +9,7 @@ export class StorageManager {
         this.STORAGE_KEY_LEGACY = 'writerCheckerRules';
         this.STORAGE_KEY_ACTIVE_SET = 'writerCheckerActiveSet';
         this.STORAGE_KEY_ASTERISKS = 'writerCheckerRemoveAsterisks';
+        this.UNSAFE_RULE_SET_NAMES = new Set(['__proto__', 'constructor', 'prototype']);
 
         /** @type {Object<string, Array<{target: string, replacement: string, isRegex?: boolean}>>} */
         this.defaultRules = {
@@ -111,19 +112,21 @@ export class StorageManager {
             const saved = localStorage.getItem(this.STORAGE_KEY_RULES);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (this._isValidRuleSetsObject(parsed)) return parsed;
+                const sanitized = this._sanitizeRuleSetsObject(parsed);
+                if (Object.keys(sanitized).length > 0) return sanitized;
             } else {
                 return this._migrateLegacy();
             }
         } catch (e) {
             console.error('ルールセットの読み込みに失敗:', e);
         }
-        return JSON.parse(JSON.stringify(this.defaultRules));
+        return this._cloneDefaultRules();
     }
 
     saveAllRuleSets(ruleSetsObj) {
         try {
-            localStorage.setItem(this.STORAGE_KEY_RULES, JSON.stringify(ruleSetsObj));
+            const sanitized = this._sanitizeRuleSetsObject(ruleSetsObj);
+            localStorage.setItem(this.STORAGE_KEY_RULES, JSON.stringify(sanitized));
         } catch (e) {
             console.error('ルールセットの保存に失敗（容量超過？）:', e);
         }
@@ -135,7 +138,9 @@ export class StorageManager {
 
     loadActiveSetName() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY_ACTIVE_SET) || Object.keys(this.defaultRules)[0];
+            const saved = localStorage.getItem(this.STORAGE_KEY_ACTIVE_SET);
+            if (this._isSafeRuleSetName(saved)) return saved;
+            return Object.keys(this.defaultRules)[0];
         } catch (e) {
             console.error('アクティブセット名の読み込みに失敗:', e);
             return Object.keys(this.defaultRules)[0];
@@ -144,6 +149,7 @@ export class StorageManager {
 
     saveActiveSetName(name) {
         try {
+            if (!this._isSafeRuleSetName(name)) return;
             localStorage.setItem(this.STORAGE_KEY_ACTIVE_SET, name);
         } catch (e) {
             console.error('アクティブセット名の保存に失敗:', e);
@@ -176,11 +182,50 @@ export class StorageManager {
     //  ヘルパー
     // =========================================================================
 
-    _isValidRuleSetsObject(obj) {
-        if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return false;
-        return Object.values(obj).every(
-            (v) => Array.isArray(v) && v.every((r) => typeof r === 'object' && r !== null && typeof r.target === 'string')
-        );
+    _cloneDefaultRules() {
+        return JSON.parse(JSON.stringify(this.defaultRules));
+    }
+
+    _isSafeRuleSetName(name) {
+        return typeof name === 'string'
+            && name.trim().length > 0
+            && !this.UNSAFE_RULE_SET_NAMES.has(name);
+    }
+
+    _sanitizeRule(rule) {
+        if (typeof rule !== 'object' || rule === null || typeof rule.target !== 'string') return null;
+
+        const sanitized = {
+            target: rule.target,
+            replacement: typeof rule.replacement === 'string' ? rule.replacement : ''
+        };
+        if (rule.isRegex === true) sanitized.isRegex = true;
+        if (rule.enabled === false) sanitized.enabled = false;
+        if (typeof rule.memo === 'string' && rule.memo) sanitized.memo = rule.memo;
+        return sanitized;
+    }
+
+    _sanitizeRuleArray(ruleArray) {
+        if (!Array.isArray(ruleArray)) return null;
+        const sanitized = [];
+        for (const rule of ruleArray) {
+            const normalized = this._sanitizeRule(rule);
+            if (normalized) sanitized.push(normalized);
+        }
+        return sanitized;
+    }
+
+    _sanitizeRuleSetsObject(obj) {
+        if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return {};
+
+        const sanitizedSets = {};
+        for (const [setName, rules] of Object.entries(obj)) {
+            if (!this._isSafeRuleSetName(setName)) continue;
+            const sanitizedRules = this._sanitizeRuleArray(rules);
+            if (sanitizedRules === null) continue;
+            sanitizedSets[setName] = sanitizedRules;
+        }
+        return sanitizedSets;
     }
 
     /** V1（単一配列）→ V2（名前付きオブジェクト）マイグレーション */
@@ -190,7 +235,9 @@ export class StorageManager {
             if (legacy) {
                 const parsed = JSON.parse(legacy);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    const migrated = { 'デフォルト (移行済み)': parsed };
+                    const sanitized = this._sanitizeRuleArray(parsed);
+                    if (!sanitized || sanitized.length === 0) return this._cloneDefaultRules();
+                    const migrated = { 'デフォルト (移行済み)': sanitized };
                     this.saveAllRuleSets(migrated);
                     return migrated;
                 }
@@ -198,6 +245,6 @@ export class StorageManager {
         } catch (e) {
             console.error('V1マイグレーションに失敗:', e);
         }
-        return JSON.parse(JSON.stringify(this.defaultRules));
+        return this._cloneDefaultRules();
     }
 }

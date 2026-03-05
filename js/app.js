@@ -1,6 +1,6 @@
 /**
  * Writer Checker — エントリーポイント
- * 各モジュールの初期化とService Worker登録。
+ * 各モジュールの初期化を行う。
  */
 import { StorageManager } from './StorageManager.js';
 import { RuleEngine } from './RuleEngine.js';
@@ -12,14 +12,4 @@ document.addEventListener('DOMContentLoaded', () => {
     const uiManager = new UIManager(storageManager, ruleEngine);
 
     uiManager.analyzeText();
-
-    // Service Worker撤去: 既存SWがあれば自動解除
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((regs) => {
-            regs.forEach((reg) => reg.unregister());
-        });
-        caches.keys().then((keys) => {
-            keys.forEach((key) => caches.delete(key));
-        });
-    }
 });

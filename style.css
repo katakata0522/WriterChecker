@@ -38,7 +38,8 @@ body {
     background-color: var(--bg-color);
     color: var(--text-main);
     line-height: 1.6;
-    height: 100vh;
+    height: 100dvh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -85,33 +86,11 @@ body {
     gap: 1.5rem;
 }
 
-.btn-side-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.5rem 1rem;
-    background: var(--surface-color);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
-    position: relative;
-    z-index: 10;
-}
-
-.btn-side-toggle:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
-}
-
 .rule-selector-container {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    min-width: 0;
 }
 
 .rule-selector-container label {
@@ -198,6 +177,10 @@ select:focus {
     background-color: rgba(79, 70, 229, 0.05);
 }
 
+#replaceBtn {
+    white-space: nowrap;
+}
+
 .btn-danger-icon:hover {
     color: var(--danger-color);
     background-color: var(--highlight-bg);
@@ -259,7 +242,15 @@ select:focus {
         gap: 0.5rem;
         flex-wrap: wrap;
         width: 100%;
-        justify-content: flex-end;
+        justify-content: flex-start;
+    }
+
+    #replaceBtn {
+        flex: 1;
+    }
+
+    #sidePanelToggle {
+        flex-shrink: 0;
     }
 
     .rule-selector-container label {
@@ -267,13 +258,25 @@ select:focus {
     }
 
     .rule-selector-container {
-        flex: 1;
+        width: 100%;
         min-width: 0;
     }
 
     .rule-selector-container select {
         flex: 1;
         min-width: 0;
+    }
+
+    .pane-header {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .pane-actions {
+        width: 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
     }
 
     /* モバイルではツールチップを無効化 */
@@ -953,7 +956,7 @@ textarea {
 }
 
 .rule-toggle-item:hover {
-    background-color: var(--bg-secondary);
+    background-color: var(--bg-color);
 }
 
 .rule-toggle-item input[type="checkbox"] {
@@ -1177,7 +1180,7 @@ textarea {
     background: none;
     cursor: pointer;
     font-size: 0.85rem;
-    color: var(--text-color);
+    color: var(--text-main);
     border-radius: 0.25rem;
     text-align: left;
     white-space: nowrap;

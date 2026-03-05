@@ -81,6 +81,19 @@ describe('RuleEngine: tokenize', () => {
         assert.strictEqual(highlights.length, 2);
     });
 
+    it('ハイライトトークンにルールインデックスが付与される', () => {
+        engine.setRemoveAsterisks(false);
+        engine.setRules([
+            { target: '出来る', replacement: 'できる' },
+            { target: '下さい', replacement: 'ください' }
+        ]);
+        const tokens = engine.tokenize('出来るなら教えて下さい');
+        const highlights = tokens.filter(t => t.type === 'highlight');
+        assert.strictEqual(highlights.length, 2);
+        assert.strictEqual(highlights[0].ruleIndex, 0);
+        assert.strictEqual(highlights[1].ruleIndex, 1);
+    });
+
     it('正規表現の特殊文字がエスケープされる', () => {
         engine.setRemoveAsterisks(false);
         engine.setRules([

@@ -10,7 +10,7 @@ export class UIManager {
         // ルールセット読み込み
         this.allRuleSets = this.storageManager.loadAllRuleSets();
         this.activeSetName = this.storageManager.loadActiveSetName();
-        if (!this.allRuleSets[this.activeSetName]) {
+        if (!Object.hasOwn(this.allRuleSets, this.activeSetName)) {
             this.activeSetName = Object.keys(this.allRuleSets)[0];
         }
         this.rules = this.allRuleSets[this.activeSetName];
@@ -25,6 +25,8 @@ export class UIManager {
         this._confirmCallback = null;
         this._undoStack = [];
         this.highlightOnly = false; // F-13: 指摘のみモード
+        this.MAX_SHARE_URL_LENGTH = 2000;
+        this.MAX_INCOMING_TEXT_LENGTH = 200000;
 
         this._cacheElements();
         this._bindEvents();
@@ -51,6 +53,7 @@ export class UIManager {
         this.copyBtn = document.getElementById('copyBtn');
         this.undoBtn = document.getElementById('undoBtn');
         this.sampleBtn = document.getElementById('sampleBtn');
+        this.bookmarkletLink = document.getElementById('bookmarkletLink');
 
         // ルールセットセレクタ
         this.ruleSetSelector = document.getElementById('ruleSetSelector');
@@ -77,10 +80,22 @@ export class UIManager {
         this.confirmNameBtn = document.getElementById('confirmNameBtn');
 
         // インポート・エクスポート・共有
-        this.exportRulesBtn = document.getElementById('exportRulesBtn');
-        this.importRulesBtn = document.getElementById('importRulesBtn');
-        this.importFileInput = document.getElementById('importFileInput');
-        this.shareRulesBtn = document.getElementById('shareRulesBtn');
+        this.exportRulesBtns = [
+            document.getElementById('exportRulesBtn'),
+            document.getElementById('exportRulesBtnModal'),
+        ].filter(Boolean);
+        this.importRulesBtns = [
+            document.getElementById('importRulesBtn'),
+            document.getElementById('importRulesBtnModal'),
+        ].filter(Boolean);
+        this.importFileInputs = [
+            document.getElementById('importFileInput'),
+            document.getElementById('importFileInputModal'),
+        ].filter(Boolean);
+        this.shareRulesBtns = [
+            document.getElementById('shareRulesBtn'),
+            document.getElementById('shareRulesBtnModal'),
+        ].filter(Boolean);
 
         // ステータスバー
         this.charCount = document.getElementById('charCount');
@@ -115,6 +130,7 @@ export class UIManager {
     // =========================================================================
 
     _bindEvents() {
+        this._hasUnsavedEdits = false; // C-2
         this._bindRuleSetEvents();
         this._bindImportExportEvents();
         this._bindEditorEvents();
@@ -123,7 +139,6 @@ export class UIManager {
         this._bindExternalEvents();
         this._bindSidePanelEvents();
         this._bindContextMenu(); // B-4
-        this._hasUnsavedEdits = false; // C-2
     }
 
     /** ルールセットの選択・作成・削除 */
@@ -144,7 +159,8 @@ export class UIManager {
             if (this._hasUnsavedEdits) {
                 this._showConfirm(
                     '編集中のルールがあります。保存せずにルールセットを切り替えますか？',
-                    () => { this._hasUnsavedEdits = false; doSwitch(); }
+                    () => { this._hasUnsavedEdits = false; doSwitch(); },
+                    { okText: '切り替える' }
                 );
                 this.ruleSetSelector.value = this.activeSetName;
             } else {
@@ -182,20 +198,23 @@ export class UIManager {
                 this.nameModalError.classList.remove('hidden');
                 return;
             }
+            if (!this._isSafeRuleSetName(name)) {
+                this.nameModalError.textContent = 'その名前は使用できません';
+                this.nameModalError.classList.remove('hidden');
+                return;
+            }
             if (this.allRuleSets[name]) {
                 this.nameModalError.textContent = 'その名前のルールセットは既に存在します';
                 this.nameModalError.classList.remove('hidden');
                 return;
             }
 
-            this.allRuleSets[name] = [];
-            this.activeSetName = name;
-            this.rules = this.allRuleSets[this.activeSetName];
-            this.storageManager.saveAllRuleSets(this.allRuleSets);
-            this.storageManager.saveActiveSetName(this.activeSetName);
-            this.ruleEngine.setRules(this.rules);
-            this.populateRuleSetSelector();
-            this.analyzeText();
+            if (!this._createRuleSet(name)) {
+                this.nameModalError.textContent = 'ルールセットの作成に失敗しました';
+                this.nameModalError.classList.remove('hidden');
+                return;
+            }
+
             this.nameModal.classList.add('hidden');
             this._showToast(`「${name}」を作成しました`);
         });
@@ -218,49 +237,59 @@ export class UIManager {
                     this.populateRuleSetSelector();
                     this.analyzeText();
                     this._showToast('ルールセットを削除しました');
-                }
+                },
+                { okText: '削除する', danger: true }
             );
         });
     }
 
     /** インポート・エクスポート・共有 */
     _bindImportExportEvents() {
-        this.exportRulesBtn.addEventListener('click', () => {
-            const json = JSON.stringify(this.allRuleSets, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'writer-checker-rules.json';
-            a.click();
-            URL.revokeObjectURL(url);
-            this._showToast('ルールをエクスポートしました');
+        this.exportRulesBtns.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const json = JSON.stringify(this.allRuleSets, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'writer-checker-rules.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                this._showToast('ルールをエクスポートしました');
+            });
         });
 
-        this.shareRulesBtn.addEventListener('click', async () => {
-            const link = this._generateShareLink();
-            try {
-                await navigator.clipboard.writeText(link);
-                this._showToast('共有リンクをコピーしました！', 'fa-link');
-            } catch {
-                this._showToast('コピーに失敗しました', 'fa-triangle-exclamation');
-            }
+        this.shareRulesBtns.forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const link = this._generateShareLink();
+                try {
+                    await navigator.clipboard.writeText(link);
+                    this._showToast('共有リンクをコピーしました！', 'fa-link');
+                } catch {
+                    this._showToast('コピーに失敗しました', 'fa-triangle-exclamation');
+                }
+            });
         });
 
-        this.importRulesBtn.addEventListener('click', () => {
-            this.importFileInput.click();
+        this.importRulesBtns.forEach((btn, index) => {
+            btn.addEventListener('click', () => {
+                const input = this.importFileInputs[index] || this.importFileInputs[0];
+                if (input) input.click();
+            });
         });
 
-        this.importFileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+        this.importFileInputs.forEach((input) => {
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                this._processImportedJSON(event.target.result);
-                this.importFileInput.value = '';
-            };
-            reader.readAsText(file);
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    this._processImportedJSON(event.target.result);
+                    input.value = '';
+                };
+                reader.readAsText(file);
+            });
         });
     }
 
@@ -285,6 +314,7 @@ export class UIManager {
         this.addRuleBtn.addEventListener('click', () => {
             this.rules.push({ target: '', replacement: '' });
             this.renderRulesList();
+            this._markRulesDirty();
             const newInputs = this.rulesList.querySelectorAll('.rule-item:last-child .rule-target');
             if (newInputs.length > 0) newInputs[0].focus();
         });
@@ -296,6 +326,9 @@ export class UIManager {
             this.analyzeText();
             this._showToast('ルールを保存しました');
         });
+
+        this.rulesList.addEventListener('input', () => this._markRulesDirty());
+        this.rulesList.addEventListener('change', () => this._markRulesDirty());
 
         // F-04: ルール検索
         if (this.ruleSearchInput) {
@@ -402,6 +435,9 @@ export class UIManager {
             const targetText = highlight.getAttribute('data-target');
             const replacementText = highlight.getAttribute('data-replacement');
             const occurrenceIndex = parseInt(highlight.getAttribute('data-occurrence'), 10);
+            const ruleIndexRaw = parseInt(highlight.getAttribute('data-rule-index'), 10);
+            const ruleIndex = Number.isNaN(ruleIndexRaw) ? null : ruleIndexRaw;
+            const matchedText = highlight.getAttribute('data-match') || highlight.textContent || '';
             if (targetText === null || isNaN(occurrenceIndex)) return;
 
             // F-10: 確認ポップアップ
@@ -409,8 +445,12 @@ export class UIManager {
             this._showConfirm(
                 `「${targetText}」→「${displayReplacement}」\nに修正しますか？`,
                 () => {
-                    this._applyIndividualFix(targetText, replacementText, occurrenceIndex);
-                }
+                    this._applyIndividualFix(targetText, replacementText, occurrenceIndex, {
+                        ruleIndex,
+                        matchedText
+                    });
+                },
+                { okText: '修正する' }
             );
         });
     }
@@ -430,6 +470,7 @@ export class UIManager {
                 this.ruleModal.classList.add('hidden');
                 this.nameModal.classList.add('hidden');
                 this.confirmModal.classList.add('hidden');
+                this._closeSidePanel();
             }
         });
     }
@@ -469,15 +510,14 @@ export class UIManager {
 
     /** URLハッシュインポート + ブックマークレット受信 */
     _bindExternalEvents() {
+        this._setupBookmarkletLink();
+        this._importFromWindowName();
         this._importFromHash();
 
         window.addEventListener('message', (e) => {
-            if (e.origin !== location.origin) return;
-            if (e.data && e.data.type === 'writerChecker' && e.data.text) {
-                this._replaceTextareaContent(e.data.text);
-                this.analyzeText();
-                this._showToast('ブックマークレットからテキストを受信しました');
-            }
+            if (!e.data || e.data.type !== 'writerChecker') return;
+            if (e.source !== window.opener) return;
+            this._applyIncomingText(e.data.text, 'ブックマークレット');
         });
     }
 
@@ -510,6 +550,7 @@ export class UIManager {
                 if (isNaN(index) || index < 0 || index >= this.rules.length) return;
                 this.rules.splice(index, 1);
                 this.renderRulesList();
+                this._markRulesDirty();
             });
             this._rulesListDelegated = true;
         }
@@ -546,6 +587,7 @@ export class UIManager {
                     const [moved] = this.rules.splice(fromIndex, 1);
                     this.rules.splice(toIndex, 0, moved);
                     this.renderRulesList();
+                    this._markRulesDirty();
                 }
             });
 
@@ -571,6 +613,7 @@ export class UIManager {
             regexToggle.addEventListener('click', () => {
                 rule.isRegex = !rule.isRegex;
                 regexToggle.classList.toggle('active', rule.isRegex);
+                this._markRulesDirty();
             });
 
             // F-15: メモフィールド
@@ -598,6 +641,7 @@ export class UIManager {
             enabledCheckbox.addEventListener('change', () => {
                 rule.enabled = enabledCheckbox.checked;
                 ruleItem.classList.toggle('rule-item--disabled', !enabledCheckbox.checked);
+                this._markRulesDirty();
             });
 
             // 初期状態で無効の場合グレーアウト
@@ -638,6 +682,7 @@ export class UIManager {
         this.ruleEngine.setRemoveAsterisks(this.removeAsterisks);
         this.storageManager.saveAllRuleSets(this.allRuleSets);
         this.storageManager.saveAsteriskSetting(this.removeAsterisks);
+        this._hasUnsavedEdits = false;
     }
 
     // =========================================================================
@@ -683,8 +728,13 @@ export class UIManager {
                 span.setAttribute('data-target', targetKey);
                 span.setAttribute('data-occurrence', occurrenceCounters[targetKey].toString());
                 occurrenceCounters[targetKey]++;
+                if (Number.isInteger(token.ruleIndex) && token.ruleIndex >= 0) {
+                    span.setAttribute('data-rule-index', token.ruleIndex.toString());
+                }
+                span.setAttribute('data-rule-target', token.target || token.content);
 
-                span.setAttribute('data-replacement', token.replacement || '削除');
+                span.setAttribute('data-replacement', token.replacement ?? '');
+                span.setAttribute('data-match', token.content);
                 span.textContent = token.content;
                 fragment.appendChild(span);
 
@@ -763,6 +813,115 @@ export class UIManager {
     //  ユーティリティ
     // =========================================================================
 
+    _markRulesDirty() {
+        this._hasUnsavedEdits = true;
+    }
+
+    _createRuleSet(name) {
+        if (!this._isSafeRuleSetName(name)) return false;
+        if (this.allRuleSets[name]) return false;
+
+        this.allRuleSets[name] = [];
+        this.activeSetName = name;
+        this.rules = this.allRuleSets[this.activeSetName];
+        this.storageManager.saveAllRuleSets(this.allRuleSets);
+        this.storageManager.saveActiveSetName(this.activeSetName);
+        this.ruleEngine.setRules(this.rules);
+        this.populateRuleSetSelector();
+        this.analyzeText();
+        return true;
+    }
+
+    _isSafeRuleSetName(name) {
+        return typeof name === 'string'
+            && name.trim().length > 0
+            && name !== '__proto__'
+            && name !== 'constructor'
+            && name !== 'prototype';
+    }
+
+    _sanitizeImportedRuleArray(rules) {
+        if (!Array.isArray(rules)) return null;
+        return rules
+            .filter((r) => typeof r === 'object' && r !== null && typeof r.target === 'string')
+            .map((r) => {
+                const rule = {
+                    target: r.target,
+                    replacement: typeof r.replacement === 'string' ? r.replacement : ''
+                };
+                if (r.isRegex === true) rule.isRegex = true;
+                if (r.enabled === false) rule.enabled = false;
+                if (typeof r.memo === 'string' && r.memo) rule.memo = r.memo;
+                return rule;
+            });
+    }
+
+    _syncActiveRules() {
+        if (!Object.hasOwn(this.allRuleSets, this.activeSetName)) {
+            this.activeSetName = Object.keys(this.allRuleSets)[0];
+            this.storageManager.saveActiveSetName(this.activeSetName);
+        }
+        this.rules = this.allRuleSets[this.activeSetName];
+        this.ruleEngine.setRules(this.rules);
+    }
+
+    _isValidIncomingText(text) {
+        return typeof text === 'string'
+            && text.length > 0
+            && text.length <= this.MAX_INCOMING_TEXT_LENGTH;
+    }
+
+    _applyIncomingText(text, sourceName) {
+        if (!this._isValidIncomingText(text)) {
+            this._showToast('受信テキストが無効です。文字数と内容を確認してください。', 'fa-triangle-exclamation');
+            return;
+        }
+        this._replaceTextareaContent(text);
+        this.analyzeText();
+        this._showToast(`${sourceName}からテキストを受信しました`);
+    }
+
+    _importFromWindowName() {
+        if (!window.name) return;
+        try {
+            const payload = JSON.parse(window.name);
+            if (!payload || payload.type !== 'writerChecker') return;
+            window.name = '';
+            this._applyIncomingText(payload.text, 'ブックマークレット');
+        } catch {
+            // Writer Checker向けでないwindow.nameは無視
+        }
+    }
+
+    _buildBookmarkletHref(appUrl) {
+        const selector = 'textarea,div[contenteditable=true],.ProseMirror,.ql-editor,[role=textbox]';
+        const noInputMsg = 'テキストエリアが見つかりません';
+        const emptyMsg = 'テキストが空です';
+        const popupMsg = 'ポップアップを許可してから再実行してください';
+
+        return `javascript:(function(){var appUrl=${JSON.stringify(appUrl)};var t=document.querySelector(${JSON.stringify(selector)});if(!t){alert(${JSON.stringify(noInputMsg)});return;}var txt=t.innerText||t.value||'';if(!txt){alert(${JSON.stringify(emptyMsg)});return;}var w=window.open(appUrl,'WriterChecker');if(!w){alert(${JSON.stringify(popupMsg)});return;}try{w.name=JSON.stringify({type:'writerChecker',text:txt,ts:Date.now()});if(w.focus){w.focus();}}catch(e){alert(${JSON.stringify(popupMsg)});}})();`;
+    }
+
+    _setupBookmarkletLink() {
+        if (!this.bookmarkletLink) return;
+        const appUrl = `${location.origin}${location.pathname}`;
+        this.bookmarkletLink.href = this._buildBookmarkletHref(appUrl);
+    }
+
+    _findRuleForHighlight(targetText, ruleIndex, ruleTarget = null) {
+        if (Number.isInteger(ruleIndex) && ruleIndex >= 0 && ruleIndex < this.rules.length) {
+            const candidate = this.rules[ruleIndex];
+            if (typeof ruleTarget !== 'string' || candidate.target === ruleTarget) {
+                return candidate;
+            }
+        }
+        if (typeof ruleTarget === 'string') {
+            const byRuleTarget = this.rules.find((r) => r.target === ruleTarget);
+            if (byRuleTarget) return byRuleTarget;
+        }
+        return this.rules.find((r) => r.target === targetText);
+    }
+
     /** textareaの内容をブラウザUndoスタック保持しつつ全置換 */
     _replaceTextareaContent(newText, skipUndo = false) {
         if (!skipUndo && this.sourceText.value) {
@@ -792,13 +951,16 @@ export class UIManager {
         }, 3000);
     }
 
-    _showConfirm(message, onConfirm) {
+    _showConfirm(message, onConfirm, options = {}) {
         this.confirmModalMsg.textContent = '';
         const lines = message.split('\n');
         lines.forEach((line, i) => {
             this.confirmModalMsg.appendChild(document.createTextNode(line));
             if (i < lines.length - 1) this.confirmModalMsg.appendChild(document.createElement('br'));
         });
+        this.confirmModalOkBtn.textContent = options.okText || '実行する';
+        this.confirmModalCancelBtn.textContent = options.cancelText || 'キャンセル';
+        this.confirmModalOkBtn.classList.toggle('btn-danger', options.danger === true);
 
         this._confirmCallback = onConfirm;
         this.confirmModal.classList.remove('hidden');
@@ -863,21 +1025,16 @@ export class UIManager {
             const overwrittenKeys = [];
 
             for (const key of Object.keys(data)) {
-                if (!Array.isArray(data[key])) {
+                if (!this._isSafeRuleSetName(key)) {
                     skippedCount++;
                     continue;
                 }
 
-                const validRules = data[key]
-                    .filter(r => typeof r === 'object' && r !== null && typeof r.target === 'string')
-                    .map(r => {
-                        const rule = {
-                            target: r.target,
-                            replacement: typeof r.replacement === 'string' ? r.replacement : ''
-                        };
-                        if (r.isRegex) rule.isRegex = true;
-                        return rule;
-                    });
+                const validRules = this._sanitizeImportedRuleArray(data[key]);
+                if (validRules === null) {
+                    skippedCount++;
+                    continue;
+                }
 
                 if (this.allRuleSets[key] && this.allRuleSets[key].length > 0) {
                     overwrittenKeys.push(key);
@@ -888,8 +1045,7 @@ export class UIManager {
 
             if (importCount > 0) {
                 this.storageManager.saveAllRuleSets(this.allRuleSets);
-                this.rules = this.allRuleSets[this.activeSetName];
-                this.ruleEngine.setRules(this.rules);
+                this._syncActiveRules();
                 this.populateRuleSetSelector();
                 this.renderRulesList();
                 this.analyzeText();
@@ -920,14 +1076,18 @@ export class UIManager {
 
             let count = 0;
             for (const key of Object.keys(imported)) {
-                if (!Array.isArray(imported[key])) continue;
-                this.allRuleSets[key] = imported[key];
+                if (!this._isSafeRuleSetName(key)) continue;
+                const validRules = this._sanitizeImportedRuleArray(imported[key]);
+                if (validRules === null) continue;
+                this.allRuleSets[key] = validRules;
                 count++;
             }
             if (count > 0) {
                 this.storageManager.saveAllRuleSets(this.allRuleSets);
+                this._syncActiveRules();
                 this.populateRuleSetSelector();
                 this.renderRulesList();
+                this.analyzeText();
                 this._showToast(`共有リンクから${count}個のルールセットをインポートしました`);
             }
             history.replaceState(null, '', location.pathname + location.search);
@@ -941,7 +1101,7 @@ export class UIManager {
         const json = JSON.stringify(currentSet);
         const hash = btoa(encodeURIComponent(json));
         const url = `${location.origin}${location.pathname}#rules=${hash}`;
-        if (url.length > 2000) {
+        if (url.length > this.MAX_SHARE_URL_LENGTH) {
             this._showToast('ルールが多いため共有リンクが長くなっています。一部のSNSでは正しく動作しない場合があります。', 'fa-triangle-exclamation');
         }
         return url;
@@ -975,14 +1135,86 @@ export class UIManager {
     //  F-10: 個別修正の実行
     // =========================================================================
 
-    _applyIndividualFix(targetText, replacementText, occurrenceIndex) {
+    _buildRegexFromRule(rule) {
+        if (!rule || typeof rule.target !== 'string' || rule.target.length === 0) return null;
+        try {
+            const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const pattern = rule.isRegex ? rule.target : escapeRegExp(rule.target);
+            return new RegExp(pattern, 'g');
+        } catch {
+            return null;
+        }
+    }
+
+    _applyRegexIndividualFix(source, rule, replacementText, matchedText, occurrenceIndex) {
+        const regex = this._buildRegexFromRule(rule);
+        if (!regex) return null;
+
+        let match;
+        let found = 0;
+        regex.lastIndex = 0;
+
+        while ((match = regex.exec(source)) !== null) {
+            if (match[0] === '' && regex.lastIndex === match.index) {
+                regex.lastIndex++;
+                continue;
+            }
+
+            if (match[0] !== matchedText) continue;
+            if (found !== occurrenceIndex) {
+                found++;
+                continue;
+            }
+
+            let replacedSegment = replacementText || '';
+            if (rule.isRegex) {
+                try {
+                    const singleRegex = new RegExp(rule.target);
+                    replacedSegment = match[0].replace(singleRegex, replacementText || '');
+                } catch {
+                    replacedSegment = replacementText || '';
+                }
+            }
+
+            const before = source.substring(0, match.index);
+            const after = source.substring(match.index + match[0].length);
+            return before + replacedSegment + after;
+        }
+
+        return null;
+    }
+
+    _applyIndividualFix(targetText, replacementText, occurrenceIndex, options = {}) {
         const source = this.sourceText.value;
+        const ruleIndex = Number.isInteger(options.ruleIndex) ? options.ruleIndex : null;
+        const matchedText = typeof options.matchedText === 'string' ? options.matchedText : '';
+        const lookupText = matchedText || targetText;
+        if (!lookupText) return;
+
+        if (ruleIndex !== null && ruleIndex >= 0 && ruleIndex < this.rules.length) {
+            const rule = this.rules[ruleIndex];
+            if (rule?.isRegex) {
+                const regexReplaced = this._applyRegexIndividualFix(
+                    source,
+                    rule,
+                    replacementText,
+                    lookupText,
+                    occurrenceIndex
+                );
+                if (regexReplaced !== null) {
+                    this._replaceTextareaContent(regexReplaced);
+                    this.analyzeText();
+                    return;
+                }
+            }
+        }
+
         let currentIndex = -1;
         let found = 0;
         let startPos = 0;
 
         while (startPos < source.length) {
-            currentIndex = source.indexOf(targetText, startPos);
+            currentIndex = source.indexOf(lookupText, startPos);
             if (currentIndex === -1) break;
             if (found === occurrenceIndex) break;
             found++;
@@ -991,7 +1223,7 @@ export class UIManager {
 
         if (currentIndex !== -1 && found === occurrenceIndex) {
             const before = source.substring(0, currentIndex);
-            const after = source.substring(currentIndex + targetText.length);
+            const after = source.substring(currentIndex + lookupText.length);
             this._replaceTextareaContent(before + (replacementText || '') + after);
             this.analyzeText();
         }
@@ -1068,8 +1300,10 @@ export class UIManager {
                     this.rules.push({ ...t });
                 }
                 this.renderRulesList();
+                this._markRulesDirty();
                 this._showToast(`${templates.length}件のテンプレートを追加しました`);
-            }
+            },
+            { okText: '追加する' }
         );
     }
 
@@ -1290,11 +1524,15 @@ export class UIManager {
             this._removeContextMenu();
 
             const targetText = highlight.getAttribute('data-target');
+            const ruleIndexRaw = parseInt(highlight.getAttribute('data-rule-index'), 10);
+            const ruleIndex = Number.isNaN(ruleIndexRaw) ? null : ruleIndexRaw;
+            const ruleTarget = highlight.getAttribute('data-rule-target');
+            const displayTargetText = targetText || '対象';
             const menu = document.createElement('div');
             menu.className = 'context-menu';
             menu.innerHTML = `
                 <button class="context-menu-item" data-action="ignore">
-                    <i class="fa-solid fa-eye-slash"></i> 「${this._escapeHtml(targetText.substring(0, 15))}」のルールを無効化
+                    <i class="fa-solid fa-eye-slash"></i> 「${this._escapeHtml(displayTargetText.substring(0, 15))}」のルールを無効化
                 </button>
             `;
             menu.style.left = `${e.pageX}px`;
@@ -1302,7 +1540,7 @@ export class UIManager {
             document.body.appendChild(menu);
 
             menu.querySelector('[data-action="ignore"]').addEventListener('click', () => {
-                const rule = this.rules.find(r => r.target === targetText);
+                const rule = this._findRuleForHighlight(targetText, ruleIndex, ruleTarget);
                 if (rule) {
                     rule.enabled = false;
                     this.ruleEngine.setRules(this.rules);
@@ -1310,7 +1548,7 @@ export class UIManager {
                     this.storageManager.saveAllRuleSets(this.allRuleSets);
                     this.renderRuleToggleList();
                     this.analyzeText();
-                    this._showToast(`「${targetText}」のルールを無効化しました`, 'fa-eye-slash');
+                    this._showToast(`「${displayTargetText}」のルールを無効化しました`, 'fa-eye-slash');
                 }
                 this._removeContextMenu();
             });

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://katakatalab.com/writer-checker/sitemap.xml

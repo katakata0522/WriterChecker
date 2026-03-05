@@ -59,11 +59,11 @@ export class RuleEngine {
         }
 
         // 各ルールを順に適用（enabled=falseのルールはスキップ）
-        for (const rule of this.rules) {
+        for (const [ruleIndex, rule] of this.rules.entries()) {
             if (rule.enabled === false) continue;
             const regex = this._buildRegex(rule);
             if (!regex) continue;
-            tokens = this._applyHighlight(tokens, regex, rule.replacement, rule.target);
+            tokens = this._applyHighlight(tokens, regex, rule.replacement, rule.target, ruleIndex);
         }
 
         return tokens;
@@ -75,9 +75,10 @@ export class RuleEngine {
      * @param {RegExp} regex
      * @param {string} replacement
      * @param {string} originalTarget
+     * @param {number|null} ruleIndex
      * @returns {Array}
      */
-    _applyHighlight(tokens, regex, replacement, originalTarget) {
+    _applyHighlight(tokens, regex, replacement, originalTarget, ruleIndex = null) {
         const result = [];
 
         for (const token of tokens) {
@@ -107,7 +108,8 @@ export class RuleEngine {
                     type: 'highlight',
                     content: match[0],
                     replacement,
-                    target: originalTarget || match[0]
+                    target: originalTarget || match[0],
+                    ruleIndex
                 });
 
                 lastIndex = regex.lastIndex;
