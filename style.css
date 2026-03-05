@@ -85,6 +85,29 @@ body {
     gap: 1.5rem;
 }
 
+.btn-side-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 1rem;
+    background: var(--surface-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+    position: relative;
+    z-index: 10;
+}
+
+.btn-side-toggle:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+}
+
 .rule-selector-container {
     display: flex;
     align-items: center;
@@ -1189,4 +1212,25 @@ textarea {
 .legal-divider {
     color: var(--border-color);
     font-size: 0.7rem;
+}
+
+/* サイドパネル内の法的リンク */
+.side-panel-legal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.75rem;
+}
+
+.side-panel-legal a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.side-panel-legal a:hover {
+    color: var(--primary-color);
 }
