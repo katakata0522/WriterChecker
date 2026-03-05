@@ -1,5 +1,5 @@
 param(
-    [string]$ProjectDir = "C:\Users\tomok\Desktop\マネタイズ\writer-checker",
+    [string]$ProjectDir = "",
     [string]$SshKeyPath = "C:\Users\tomok\.ssh\katakatalab_actions_ed25519",
     [string]$SshHost = "hajikkoroom.xsrv.jp",
     [int]$SshPort = 10022,
@@ -10,6 +10,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+if ([string]::IsNullOrWhiteSpace($ProjectDir)) {
+    $ProjectDir = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+}
+
 if (!(Test-Path -LiteralPath $ProjectDir)) {
     throw "ProjectDir not found: $ProjectDir"
 }
@@ -17,28 +21,49 @@ if (!(Test-Path -LiteralPath $SshKeyPath)) {
     throw "SshKeyPath not found: $SshKeyPath"
 }
 
-$items = @(
+$files = @(
     "index.html",
     "style.css",
     "manifest.json",
     "sw.js",
     "robots.txt",
     "sitemap.xml",
+    "package.json"
+)
+
+$dirs = @(
     "guide",
     "privacy",
     "terms",
     "js",
-    "vendor"
+    "vendor",
+    "tests",
+    "scripts"
 )
 
 Push-Location $ProjectDir
 try {
-    $archiveCmd = "tar -cf - " + ($items -join " ")
-    $remoteCmd = "tar -xf - -C $RemoteDir && find $RemoteDir -type d -exec chmod 755 {} \; && find $RemoteDir -type f -exec chmod 644 {} \; && chmod 755 $RemoteDir/js"
-    $fullCmd = "$archiveCmd | ssh -i `"$SshKeyPath`" -p $SshPort $SshUser@$SshHost `"$remoteCmd`""
-
+    $remoteTarget = "${SshUser}@${SshHost}:$RemoteDir/"
     Write-Host "Syncing files to Xserver..."
-    Invoke-Expression $fullCmd
+
+    foreach ($file in $files) {
+        & scp -i $SshKeyPath -P $SshPort $file $remoteTarget
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to upload file: $file"
+        }
+    }
+
+    foreach ($dir in $dirs) {
+        & scp -i $SshKeyPath -P $SshPort -r $dir $remoteTarget
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to upload directory: $dir"
+        }
+    }
+
+    & ssh -i $SshKeyPath -p $SshPort "$SshUser@$SshHost" "find $RemoteDir -type d -exec chmod 755 {} \; && find $RemoteDir -type f -exec chmod 644 {} \; && chmod 755 $RemoteDir/js"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to normalize permissions on remote host."
+    }
 
     Write-Host "Running production verify..."
     node "$ProjectDir/scripts/verify-production.mjs" $BaseUrl
