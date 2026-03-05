@@ -142,3 +142,63 @@ describe('UIManager: 追加の堅牢性', () => {
         assert.deepStrictEqual(manager.rules, manager.allRuleSets.安全1);
     });
 });
+
+describe('UIManager: スコアリングと全部盛り判定', () => {
+    it('二重敬語を検出できる', () => {
+        const manager = Object.create(UIManager.prototype);
+        const issues = manager._findDoubleHonorificIssues('ご連絡させていただきます。お伺いさせていただきます。');
+
+        assert.strictEqual(issues.length, 2);
+        assert.strictEqual(issues[0].phrase, 'ご連絡させていただきます');
+        assert.strictEqual(issues[1].phrase, 'お伺いさせていただきます');
+    });
+
+    it('違反が増えるほど文章スコアが下がる', () => {
+        const manager = Object.create(UIManager.prototype);
+
+        const good = manager._calculateWritingScore({
+            text: 'このたびはご連絡ありがとうございます。内容を確認し、明日までに返答します。',
+            matchCount: 0,
+            doubleHonorificIssues: [],
+            metrics: {
+                noSpaceChars: 40,
+                averageSentenceLength: 20,
+                kanjiPercent: 28
+            }
+        });
+
+        const poor = manager._calculateWritingScore({
+            text: 'ご連絡させていただきます。何卒よろしくお願い致します。',
+            matchCount: 8,
+            doubleHonorificIssues: [{ phrase: 'ご連絡させていただきます' }],
+            metrics: {
+                noSpaceChars: 32,
+                averageSentenceLength: 38,
+                kanjiPercent: 48
+            }
+        });
+
+        assert.ok(good.score > poor.score);
+        assert.strictEqual(typeof good.grade, 'string');
+        assert.strictEqual(typeof poor.grade, 'string');
+    });
+
+    it('重大な違反があると全部盛り判定は要修正になる', () => {
+        const manager = Object.create(UIManager.prototype);
+
+        const summary = manager._buildComprehensiveChecks({
+            matchCount: 6,
+            doubleHonorificIssues: [{ phrase: 'ご連絡させていただきます' }],
+            writingScore: { score: 54, grade: 'E' },
+            metrics: {
+                noSpaceChars: 120,
+                averageSentenceLength: 72,
+                kanjiPercent: 49
+            }
+        });
+
+        assert.strictEqual(summary.status, '要修正');
+        assert.ok(summary.items.some((item) => item.id === 'rule_violations' && item.level === 'fail'));
+        assert.ok(summary.items.some((item) => item.id === 'double_honorific' && item.level === 'fail'));
+    });
+});

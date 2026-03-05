@@ -29,7 +29,7 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="レギュレーション・チェッカー">
     <meta name="twitter:description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。">
-    <link rel="stylesheet" href="style.min.css?v=20260306d">
+    <link rel="stylesheet" href="style.min.css?v=20260306f">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <!-- 構造化データ -->
@@ -67,6 +67,8 @@
         <span class="status-chip"><i class="fa-solid fa-layer-group"></i> ルールセット: <strong id="activeRuleSetStatus">-</strong></span>
         <span class="status-chip"><i class="fa-solid fa-floppy-disk"></i> 保存状態: <strong id="saveStateStatus">保存済み</strong></span>
         <span class="status-chip"><i class="fa-solid fa-list-check"></i> 検出件数: <strong id="matchCountStatus">0件</strong></span>
+        <span class="status-chip status-chip-score"><i class="fa-solid fa-gauge-high"></i> 文章スコア: <strong id="writingScoreStatus">-</strong></span>
+        <span class="status-chip"><i class="fa-solid fa-shield-check"></i> 全部盛り判定: <strong id="comprehensiveStatus">-</strong></span>
     </section>
     <!-- サイドパネル（右スライドイン） -->
     <div id="sidePanelOverlay" class="side-panel-overlay hidden"></div>
@@ -210,6 +212,10 @@
                 <div class="pane-actions">
                     <button id="exportReportBtn" class="btn btn-sm btn-ghost" title="チェック結果をテキストで保存"><i
                             class="fa-solid fa-file-export"></i> レポート</button>
+                    <button id="fullCheckBtn" class="btn btn-sm btn-ghost" title="全部盛り判定を表示"><i
+                            class="fa-solid fa-clipboard-check"></i> 全部盛りチェック</button>
+                    <button id="shareScoreXBtn" class="btn btn-sm btn-ghost" title="文章スコアをXでシェア"><i
+                            class="fa-brands fa-x-twitter"></i> Xでスコア共有</button>
                     <button id="replaceBtn" class="btn btn-sm btn-primary" title="検出内容を一括で修正"><i
                             class="fa-solid fa-wand-magic-sparkles"></i> 一括修正</button>
                     <button id="copyBtn" class="btn btn-sm btn-primary" title="修正後のテキストをコピー (Ctrl+Shift+C)"><i
@@ -308,7 +314,7 @@
     </nav>
 
 
-    <script type="module" src="js/app.js?v=20260306a"></script>
+    <script type="module" src="js/app.js?v=20260306b"></script>
 </body>
 
 </html>

@@ -32,6 +32,7 @@ export class UIManager {
             replace: false,
             diff: false
         };
+        this._latestAnalysis = null;
 
         this._cacheElements();
         this._bindEvents();
@@ -65,6 +66,8 @@ export class UIManager {
         this.activeRuleSetStatus = document.getElementById('activeRuleSetStatus');
         this.saveStateStatus = document.getElementById('saveStateStatus');
         this.matchCountStatus = document.getElementById('matchCountStatus');
+        this.writingScoreStatus = document.getElementById('writingScoreStatus');
+        this.comprehensiveStatus = document.getElementById('comprehensiveStatus');
         this.guideStepSample = document.getElementById('guideStepSample');
         this.guideStepReplace = document.getElementById('guideStepReplace');
         this.guideStepDiff = document.getElementById('guideStepDiff');
@@ -133,6 +136,8 @@ export class UIManager {
         this.confirmModalCancelBtn = document.getElementById('confirmModalCancelBtn');
         this.confirmModalOkBtn = document.getElementById('confirmModalOkBtn');
         this.exportReportBtn = document.getElementById('exportReportBtn'); // F-14
+        this.fullCheckBtn = document.getElementById('fullCheckBtn');
+        this.shareScoreXBtn = document.getElementById('shareScoreXBtn');
         this.regexTemplateBtn = document.getElementById('regexTemplateBtn'); // F-08
 
         // サイドパネル
@@ -369,6 +374,18 @@ export class UIManager {
         if (this.exportReportBtn) {
             this.exportReportBtn.addEventListener('click', () => {
                 this._exportCheckReport();
+            });
+        }
+
+        if (this.fullCheckBtn) {
+            this.fullCheckBtn.addEventListener('click', () => {
+                this._openFullCheckModalFromCurrentText();
+            });
+        }
+
+        if (this.shareScoreXBtn) {
+            this.shareScoreXBtn.addEventListener('click', () => {
+                this._shareScoreToX();
             });
         }
 
@@ -749,7 +766,10 @@ export class UIManager {
             this.resultOutput.appendChild(div);
             this.matchCountBadge.textContent = '0';
             if (this.matchCountStatus) this.matchCountStatus.textContent = '0件';
+            this._latestAnalysis = null;
             this._updateBadgeStyle(0);
+            this._updateWritingScoreStatus(null);
+            this._updateComprehensiveStatus(null);
             return;
         }
 
@@ -795,6 +815,33 @@ export class UIManager {
         this.matchCountBadge.textContent = matchCount.toString();
         if (this.matchCountStatus) this.matchCountStatus.textContent = `${matchCount}件`;
         this._updateBadgeStyle(matchCount);
+
+        const metrics = this._collectTextMetrics(text);
+        const doubleHonorificIssues = this._findDoubleHonorificIssues(text);
+        const writingScore = this._calculateWritingScore({
+            text,
+            matchCount,
+            doubleHonorificIssues,
+            metrics
+        });
+        const comprehensiveSummary = this._buildComprehensiveChecks({
+            matchCount,
+            doubleHonorificIssues,
+            writingScore,
+            metrics
+        });
+
+        this._latestAnalysis = {
+            text,
+            tokens,
+            matchCount,
+            metrics,
+            doubleHonorificIssues,
+            writingScore,
+            comprehensiveSummary
+        };
+        this._updateWritingScoreStatus(writingScore);
+        this._updateComprehensiveStatus(comprehensiveSummary);
     }
 
     _updateStatusBar(text) {
@@ -853,6 +900,228 @@ export class UIManager {
         this.matchCountBadge.style.color = 'white';
     }
 
+    _collectTextMetrics(text) {
+        const safeText = typeof text === 'string' ? text : '';
+        const cleanText = safeText.replace(/[\s\u3000\n\r]/g, '');
+        const noSpaceChars = cleanText.length;
+        const sentenceCount = Math.max(
+            1,
+            safeText.split(/[。！？!?]+/).map((s) => s.trim()).filter(Boolean).length
+        );
+        const averageSentenceLength = sentenceCount > 0 ? Math.round(noSpaceChars / sentenceCount) : 0;
+        const kanjiCount = (cleanText.match(/[\u4e00-\u9faf\u3400-\u4dbf]/g) || []).length;
+        const kanjiPercent = noSpaceChars > 0 ? Math.round((kanjiCount / noSpaceChars) * 100) : 0;
+
+        return {
+            totalChars: safeText.length,
+            noSpaceChars,
+            sentenceCount,
+            averageSentenceLength,
+            kanjiPercent
+        };
+    }
+
+    _findDoubleHonorificIssues(text) {
+        if (typeof text !== 'string' || text.length === 0) return [];
+
+        const patterns = [
+            { regex: /ご連絡させていただ(?:きます|きました|く|き)/g, suggestion: '「ご連絡いたします」または「連絡させていただきます」に統一' },
+            { regex: /お伺いさせていただ(?:きます|きました|く|き)/g, suggestion: '「伺います」または「お伺いします」に統一' },
+            { regex: /拝見させていただ(?:きます|きました|く|き)/g, suggestion: '「拝見します」に統一' },
+            { regex: /お越しになられ(?:る|ます|ました)/g, suggestion: '「お越しになる」または「来られる」に統一' },
+            { regex: /ご覧になられ(?:る|ます|ました)/g, suggestion: '「ご覧になる」または「見られる」に統一' },
+            { regex: /お召し上がりになられ(?:る|ます|ました)/g, suggestion: '「召し上がる」に統一' }
+        ];
+
+        const issues = [];
+        for (const pattern of patterns) {
+            pattern.regex.lastIndex = 0;
+            let match;
+            while ((match = pattern.regex.exec(text)) !== null) {
+                issues.push({
+                    type: 'double_honorific',
+                    phrase: match[0],
+                    index: match.index,
+                    suggestion: pattern.suggestion
+                });
+            }
+        }
+
+        issues.sort((a, b) => a.index - b.index);
+        const unique = [];
+        const seen = new Set();
+        for (const issue of issues) {
+            const key = `${issue.index}:${issue.phrase}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            unique.push(issue);
+        }
+        return unique;
+    }
+
+    _calculateWritingScore({ text, matchCount, doubleHonorificIssues = [], metrics = null } = {}) {
+        const resolvedMetrics = metrics || this._collectTextMetrics(text || '');
+        const safeMatchCount = Number.isFinite(matchCount) ? Math.max(0, matchCount) : 0;
+        const safeDoubleHonorificCount = Array.isArray(doubleHonorificIssues) ? doubleHonorificIssues.length : 0;
+
+        let score = 100;
+        const penalties = [];
+
+        const rulePenalty = Math.min(safeMatchCount * 3, 45);
+        if (rulePenalty > 0) {
+            score -= rulePenalty;
+            penalties.push({ label: 'ルール違反', value: rulePenalty });
+        }
+
+        const honorificPenalty = Math.min(safeDoubleHonorificCount * 8, 24);
+        if (honorificPenalty > 0) {
+            score -= honorificPenalty;
+            penalties.push({ label: '二重敬語', value: honorificPenalty });
+        }
+
+        if (resolvedMetrics.noSpaceChars < 30) {
+            score -= 12;
+            penalties.push({ label: '文章量不足', value: 12 });
+        } else if (resolvedMetrics.noSpaceChars < 80) {
+            score -= 5;
+            penalties.push({ label: '文章量不足', value: 5 });
+        }
+
+        if (resolvedMetrics.averageSentenceLength > 70) {
+            score -= 10;
+            penalties.push({ label: '1文が長すぎる', value: 10 });
+        } else if (resolvedMetrics.averageSentenceLength > 55) {
+            score -= 5;
+            penalties.push({ label: '1文がやや長い', value: 5 });
+        }
+
+        if (resolvedMetrics.kanjiPercent < 12 || resolvedMetrics.kanjiPercent > 50) {
+            score -= 7;
+            penalties.push({ label: '漢字率バランス', value: 7 });
+        } else if (resolvedMetrics.kanjiPercent < 15 || resolvedMetrics.kanjiPercent > 45) {
+            score -= 3;
+            penalties.push({ label: '漢字率バランス', value: 3 });
+        }
+
+        const normalizedScore = Math.max(0, Math.min(100, Math.round(score)));
+        const level = normalizedScore >= 85 ? 'good' : normalizedScore >= 65 ? 'warn' : 'bad';
+        const grade = normalizedScore >= 95 ? 'S'
+            : normalizedScore >= 85 ? 'A'
+                : normalizedScore >= 75 ? 'B'
+                    : normalizedScore >= 65 ? 'C'
+                        : normalizedScore >= 50 ? 'D'
+                            : 'E';
+
+        return {
+            score: normalizedScore,
+            grade,
+            level,
+            penalties
+        };
+    }
+
+    _buildComprehensiveChecks({ matchCount, doubleHonorificIssues = [], writingScore, metrics } = {}) {
+        const safeMatchCount = Number.isFinite(matchCount) ? Math.max(0, matchCount) : 0;
+        const safeDoubleCount = Array.isArray(doubleHonorificIssues) ? doubleHonorificIssues.length : 0;
+        const safeMetrics = metrics || {
+            noSpaceChars: 0,
+            averageSentenceLength: 0,
+            kanjiPercent: 0
+        };
+        const scoreValue = writingScore?.score ?? 0;
+
+        const items = [
+            {
+                id: 'rule_violations',
+                label: 'ルール違反',
+                level: safeMatchCount === 0 ? 'pass' : 'fail',
+                detail: safeMatchCount === 0 ? '検出なし' : `${safeMatchCount}件検出`
+            },
+            {
+                id: 'double_honorific',
+                label: '二重敬語',
+                level: safeDoubleCount === 0 ? 'pass' : 'fail',
+                detail: safeDoubleCount === 0 ? '検出なし' : `${safeDoubleCount}件検出`
+            },
+            {
+                id: 'sentence_length',
+                label: '1文の長さ',
+                level: safeMetrics.averageSentenceLength <= 55 ? 'pass'
+                    : safeMetrics.averageSentenceLength <= 70 ? 'warn'
+                        : 'fail',
+                detail: `平均${safeMetrics.averageSentenceLength}文字`
+            },
+            {
+                id: 'kanji_balance',
+                label: '漢字率',
+                level: (safeMetrics.kanjiPercent >= 20 && safeMetrics.kanjiPercent <= 40) ? 'pass'
+                    : (safeMetrics.kanjiPercent >= 15 && safeMetrics.kanjiPercent <= 45) ? 'warn'
+                        : 'fail',
+                detail: `${safeMetrics.kanjiPercent}%`
+            },
+            {
+                id: 'text_volume',
+                label: '文章量',
+                level: safeMetrics.noSpaceChars >= 60 ? 'pass'
+                    : safeMetrics.noSpaceChars >= 30 ? 'warn'
+                        : 'fail',
+                detail: `${safeMetrics.noSpaceChars}文字(空白除く)`
+            },
+            {
+                id: 'writing_score',
+                label: '総合スコア',
+                level: scoreValue >= 80 ? 'pass' : scoreValue >= 65 ? 'warn' : 'fail',
+                detail: `${scoreValue}点`
+            }
+        ];
+
+        const failCount = items.filter((item) => item.level === 'fail').length;
+        const warnCount = items.filter((item) => item.level === 'warn').length;
+        const passCount = items.length - failCount - warnCount;
+
+        const status = failCount === 0 && warnCount <= 1 ? '良好'
+            : failCount <= 1 && scoreValue >= 65 ? '要改善'
+                : '要修正';
+        const level = status === '良好' ? 'good' : status === '要改善' ? 'warn' : 'bad';
+
+        return {
+            status,
+            level,
+            passCount,
+            warnCount,
+            failCount,
+            items
+        };
+    }
+
+    _updateWritingScoreStatus(scoreData) {
+        if (!this.writingScoreStatus) return;
+        const chip = this.writingScoreStatus.closest('.status-chip');
+        if (chip) chip.classList.remove('is-good', 'is-warn', 'is-bad');
+
+        if (!scoreData) {
+            this.writingScoreStatus.textContent = '-';
+            return;
+        }
+
+        this.writingScoreStatus.textContent = `${scoreData.score}点 (${scoreData.grade})`;
+        if (chip) chip.classList.add(`is-${scoreData.level}`);
+    }
+
+    _updateComprehensiveStatus(summary) {
+        if (!this.comprehensiveStatus) return;
+        const chip = this.comprehensiveStatus.closest('.status-chip');
+        if (chip) chip.classList.remove('is-good', 'is-warn', 'is-bad');
+
+        if (!summary) {
+            this.comprehensiveStatus.textContent = '-';
+            return;
+        }
+
+        this.comprehensiveStatus.textContent = `${summary.status} (${summary.failCount}NG)`;
+        if (chip) chip.classList.add(`is-${summary.level}`);
+    }
+
     _updateSaveStateStatus() {
         if (!this.saveStateStatus) return;
         this.saveStateStatus.textContent = this._hasUnsavedEdits ? '未保存' : '保存済み';
@@ -876,6 +1145,145 @@ export class UIManager {
         this._setGuideStepDone('sample');
         this.analyzeText();
         this._showToast('サンプルテキストを挿入しました', 'fa-flask');
+    }
+
+    _openFullCheckModalFromCurrentText() {
+        if (!this.sourceText.value) {
+            this._showToast('テキストが入力されていません', 'fa-info-circle');
+            return;
+        }
+
+        if (!this._latestAnalysis || this._latestAnalysis.text !== this.sourceText.value) {
+            this.analyzeText();
+        }
+        if (!this._latestAnalysis) return;
+
+        this._showComprehensiveCheckModal(this._latestAnalysis);
+    }
+
+    _showComprehensiveCheckModal(analysis) {
+        const existing = document.getElementById('fullCheckModal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'fullCheckModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content modal-content-lg">
+                <div class="modal-header">
+                    <h2><i class="fa-solid fa-clipboard-check"></i> 全部盛りチェック</h2>
+                    <button class="btn-close" id="closeFullCheckModal"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body comprehensive-modal-body">
+                    <section class="comprehensive-score">
+                        <p class="comprehensive-score-label">文章スコア</p>
+                        <p class="comprehensive-score-value" id="fullCheckScoreValue"></p>
+                        <p class="comprehensive-score-meta" id="fullCheckScoreMeta"></p>
+                    </section>
+                    <section>
+                        <h3 class="comprehensive-section-title">判定内訳</h3>
+                        <div id="comprehensiveCheckList" class="comprehensive-list"></div>
+                    </section>
+                    <section>
+                        <h3 class="comprehensive-section-title">二重敬語の検出</h3>
+                        <div id="doubleHonorificList" class="comprehensive-issues"></div>
+                    </section>
+                </div>
+                <div class="modal-footer modal-footer--compact">
+                    <button class="btn btn-sm btn-ghost" id="fullCheckShareBtn"><i class="fa-brands fa-x-twitter"></i> Xで共有</button>
+                    <button class="btn btn-sm btn-primary" id="fullCheckCloseBtn">閉じる</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        const scoreValue = modal.querySelector('#fullCheckScoreValue');
+        const scoreMeta = modal.querySelector('#fullCheckScoreMeta');
+        scoreValue.textContent = `${analysis.writingScore.score}点 (${analysis.writingScore.grade})`;
+        scoreValue.classList.add(`is-${analysis.writingScore.level}`);
+        scoreMeta.textContent = `全部盛り判定: ${analysis.comprehensiveSummary.status} / 検出: ${analysis.matchCount}件`;
+
+        const checksEl = modal.querySelector('#comprehensiveCheckList');
+        for (const item of analysis.comprehensiveSummary.items) {
+            const row = document.createElement('div');
+            row.className = `comprehensive-row is-${item.level}`;
+
+            const label = document.createElement('span');
+            label.className = 'comprehensive-row-label';
+            label.textContent = item.label;
+
+            const detail = document.createElement('span');
+            detail.className = 'comprehensive-row-detail';
+            detail.textContent = item.detail;
+
+            row.append(label, detail);
+            checksEl.appendChild(row);
+        }
+
+        const issuesEl = modal.querySelector('#doubleHonorificList');
+        if (analysis.doubleHonorificIssues.length === 0) {
+            const ok = document.createElement('p');
+            ok.className = 'comprehensive-empty';
+            ok.textContent = '二重敬語は検出されませんでした。';
+            issuesEl.appendChild(ok);
+        } else {
+            const list = document.createElement('ul');
+            list.className = 'comprehensive-issue-list';
+            analysis.doubleHonorificIssues.slice(0, 10).forEach((issue) => {
+                const item = document.createElement('li');
+                const phrase = document.createElement('code');
+                phrase.textContent = issue.phrase;
+                const suggestion = document.createElement('span');
+                suggestion.textContent = ` ${issue.suggestion}`;
+                item.append(phrase, suggestion);
+                list.appendChild(item);
+            });
+            issuesEl.appendChild(list);
+        }
+
+        const close = () => modal.remove();
+        modal.querySelector('#closeFullCheckModal').addEventListener('click', close);
+        modal.querySelector('#fullCheckCloseBtn').addEventListener('click', close);
+        modal.querySelector('#fullCheckShareBtn').addEventListener('click', () => {
+            this._shareScoreToX();
+        });
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) close();
+        });
+    }
+
+    _buildScoreShareText(analysis = this._latestAnalysis) {
+        if (!analysis?.writingScore || !analysis?.comprehensiveSummary) {
+            return 'Writer Checkerで文章チェック中です。 #WriterChecker';
+        }
+        return `私の文章スコアは${analysis.writingScore.score}点（${analysis.writingScore.grade}）、全部盛り判定は「${analysis.comprehensiveSummary.status}」。あなたは何点？ #WriterChecker`;
+    }
+
+    async _shareScoreToX() {
+        if (!this.sourceText.value) {
+            this._showToast('テキストを入力してから共有してください', 'fa-info-circle');
+            return;
+        }
+
+        if (!this._latestAnalysis || this._latestAnalysis.text !== this.sourceText.value) {
+            this.analyzeText();
+        }
+        if (!this._latestAnalysis) return;
+
+        const shareText = this._buildScoreShareText(this._latestAnalysis);
+        const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(location.href)}`;
+        const popup = window.open(intentUrl, '_blank', 'noopener,noreferrer');
+        if (popup) {
+            this._showToast('X共有画面を開きました', 'fa-brands fa-x-twitter');
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(`${shareText}\n${location.href}`);
+            this._showToast('ポップアップがブロックされたため共有文をコピーしました', 'fa-copy');
+        } catch {
+            this._showToast('共有ウィンドウを開けませんでした', 'fa-triangle-exclamation');
+        }
     }
 
     // =========================================================================
@@ -1010,7 +1418,9 @@ export class UIManager {
         this.toast.innerHTML = '';
 
         const icon = document.createElement('i');
-        icon.className = `fa-solid ${iconName}`;
+        icon.className = iconName.includes(' ')
+            ? iconName
+            : `fa-solid ${iconName}`;
         this.toast.appendChild(icon);
         this.toast.appendChild(document.createTextNode(` ${message}`));
 
@@ -1399,17 +1809,38 @@ export class UIManager {
                 changes.push({ from: token.content, to: token.replacement || '（削除）' });
             }
         }
-
-        const cleanText = text.replace(/[\s\u3000\n\r]/g, '');
-        const kanjiCount = (cleanText.match(/[\u4e00-\u9faf\u3400-\u4dbf]/g) || []).length;
-        const kanjiPercent = cleanText.length > 0 ? Math.round((kanjiCount / cleanText.length) * 100) : 0;
+        const metrics = this._collectTextMetrics(text);
+        const doubleHonorificIssues = this._findDoubleHonorificIssues(text);
+        const writingScore = this._calculateWritingScore({
+            text,
+            matchCount: changes.length,
+            doubleHonorificIssues,
+            metrics
+        });
+        const comprehensiveSummary = this._buildComprehensiveChecks({
+            matchCount: changes.length,
+            doubleHonorificIssues,
+            writingScore,
+            metrics
+        });
 
         let report = `═════ Writer Checker レポート ═════\n`;
         report += `日時: ${new Date().toLocaleString('ja-JP')}\n`;
         report += `ルールセット: ${this.activeSetName}\n`;
-        report += `文字数: ${text.length} / 空白なし: ${cleanText.length}\n`;
-        report += `漢字率: ${kanjiPercent}%\n`;
+        report += `文字数: ${metrics.totalChars} / 空白なし: ${metrics.noSpaceChars}\n`;
+        report += `漢字率: ${metrics.kanjiPercent}%\n`;
+        report += `文章スコア: ${writingScore.score}点 (${writingScore.grade})\n`;
+        report += `全部盛り判定: ${comprehensiveSummary.status}\n`;
+        report += `二重敬語: ${doubleHonorificIssues.length}件\n`;
         report += `検出数: ${changes.length}件\n\n`;
+
+        if (doubleHonorificIssues.length > 0) {
+            report += `─── 二重敬語の検出 ───\n`;
+            doubleHonorificIssues.slice(0, 10).forEach((issue, index) => {
+                report += `${index + 1}. 「${issue.phrase}」 -> ${issue.suggestion}\n`;
+            });
+            report += '\n';
+        }
 
         if (changes.length > 0) {
             report += `─── 検出一覧 ───\n`;
