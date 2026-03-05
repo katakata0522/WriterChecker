@@ -9,6 +9,7 @@ export class StorageManager {
         this.STORAGE_KEY_LEGACY = 'writerCheckerRules';
         this.STORAGE_KEY_ACTIVE_SET = 'writerCheckerActiveSet';
         this.STORAGE_KEY_ASTERISKS = 'writerCheckerRemoveAsterisks';
+        this.STORAGE_KEY_ANALYTICS_ENABLED = 'writerCheckerAnalyticsEnabled';
         this.UNSAFE_RULE_SET_NAMES = new Set(['__proto__', 'constructor', 'prototype']);
 
         /** @type {Object<string, Array<{target: string, replacement: string, isRegex?: boolean}>>} */
@@ -175,6 +176,28 @@ export class StorageManager {
             localStorage.setItem(this.STORAGE_KEY_ASTERISKS, String(value));
         } catch (e) {
             console.error('アスタリスク設定の保存に失敗:', e);
+        }
+    }
+
+    // =========================================================================
+    //  計測設定
+    // =========================================================================
+
+    loadAnalyticsEnabled() {
+        try {
+            const saved = localStorage.getItem(this.STORAGE_KEY_ANALYTICS_ENABLED);
+            return saved !== null ? saved === 'true' : true;
+        } catch (e) {
+            console.error('計測設定の読み込みに失敗:', e);
+            return true;
+        }
+    }
+
+    saveAnalyticsEnabled(value) {
+        try {
+            localStorage.setItem(this.STORAGE_KEY_ANALYTICS_ENABLED, String(value === true));
+        } catch (e) {
+            console.error('計測設定の保存に失敗:', e);
         }
     }
 

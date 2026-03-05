@@ -11,7 +11,9 @@ import { AnalyticsManager } from './AnalyticsManager.js';
 document.addEventListener('DOMContentLoaded', () => {
     const storageManager = new StorageManager();
     const ruleEngine = new RuleEngine();
-    const analyticsManager = new AnalyticsManager();
+    const analyticsManager = new AnalyticsManager({
+        enabled: storageManager.loadAnalyticsEnabled()
+    });
     const uiManager = new UIManager(storageManager, ruleEngine, analyticsManager);
 
     analyticsManager.track('app_loaded', analyticsManager.getMeasurementReadiness());

@@ -801,13 +801,20 @@ export class UIManager {
         this._updateStatusBar(text);
 
         if (!text) {
-            const div = document.createElement('div');
-            div.className = 'placeholder-text';
-            div.textContent = 'テキストを入力するか貼り付けると、レギュレーション違反がハイライトされます。';
-            this.resultOutput.appendChild(div);
+            const placeholderText = 'テキストを入力するか貼り付けると、レギュレーション違反がハイライトされます。';
+            if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+                const div = document.createElement('div');
+                div.className = 'placeholder-text';
+                div.textContent = placeholderText;
+                this.resultOutput.appendChild(div);
+            } else {
+                this.resultOutput.innerHTML = placeholderText;
+            }
             this.matchCountBadge.textContent = '0';
             if (this.matchCountStatus) this.matchCountStatus.textContent = '0件';
             this._latestAnalysis = null;
+            this._hasTrackedInputStart = false;
+            this._lastTrackedAnalysisKey = '';
             this._updateBadgeStyle(0);
             this._updateWritingScoreStatus(null);
             this._updateComprehensiveStatus(null);

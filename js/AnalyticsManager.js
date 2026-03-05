@@ -21,6 +21,12 @@ const BLOCKED_PARAM_KEYS = new Set([
     'text',
     'message'
 ]);
+const RESERVED_PAYLOAD_KEYS = new Set([
+    'event',
+    'event_time',
+    'session_id',
+    'page_path'
+]);
 const READINESS_BANDS = [
     { min: 85, verdict: 'Measurement-Ready' },
     { min: 70, verdict: 'Usable with Gaps' },
@@ -49,6 +55,7 @@ export function sanitizeEventParams(params) {
     for (const [rawKey, rawValue] of Object.entries(params)) {
         const key = sanitizeParamKey(rawKey);
         if (!key) continue;
+        if (RESERVED_PAYLOAD_KEYS.has(key)) continue;
 
         if (typeof rawValue === 'number') {
             if (Number.isFinite(rawValue)) sanitized[key] = Math.round(rawValue * 1000) / 1000;
@@ -169,6 +176,12 @@ export class AnalyticsManager {
         };
     }
 
+    _buildGtagParams(payload) {
+        if (typeof payload !== 'object' || payload === null) return {};
+        const { event, ...rest } = payload;
+        return rest;
+    }
+
     track(eventName, params = {}) {
         if (!this.enabled || this.userConsent !== 'granted') return false;
         if (this.sampleRate < 1 && Math.random() > this.sampleRate) return false;
@@ -194,7 +207,7 @@ export class AnalyticsManager {
 
         try {
             if (typeof this.windowLike?.gtag === 'function') {
-                this.windowLike.gtag('event', normalizedEventName, payload);
+                this.windowLike.gtag('event', normalizedEventName, this._buildGtagParams(payload));
                 sent = true;
             }
         } catch {

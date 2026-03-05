@@ -67,4 +67,14 @@ describe('StorageManager', () => {
         const loaded = sm.loadActiveSetName();
         assert.strictEqual(loaded, 'デフォルト (汎用)');
     });
+
+    it('計測設定の保存と読み込みができる', () => {
+        const sm = new StorageManager();
+        sm.saveAnalyticsEnabled(false);
+        assert.strictEqual(localStorage.getItem(sm.STORAGE_KEY_ANALYTICS_ENABLED), 'false');
+
+        assert.strictEqual(sm.loadAnalyticsEnabled(), false);
+        sm.saveAnalyticsEnabled(true);
+        assert.strictEqual(sm.loadAnalyticsEnabled(), true);
+    });
 });

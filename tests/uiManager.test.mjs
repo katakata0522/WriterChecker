@@ -141,6 +141,27 @@ describe('UIManager: 追加の堅牢性', () => {
         assert.strictEqual(manager.activeSetName, '安全1');
         assert.deepStrictEqual(manager.rules, manager.allRuleSets.安全1);
     });
+
+    it('入力が空になると解析トラッキング状態を初期化する', () => {
+        const manager = Object.create(UIManager.prototype);
+        manager.sourceText = { value: '' };
+        manager.resultOutput = { innerHTML: '', appendChild: () => {} };
+        manager._updateStatusBar = () => {};
+        manager.matchCountBadge = { textContent: '' };
+        manager.matchCountStatus = { textContent: '' };
+        manager._updateBadgeStyle = () => {};
+        manager._updateWritingScoreStatus = () => {};
+        manager._updateComprehensiveStatus = () => {};
+        manager._latestAnalysis = { dummy: true };
+        manager._hasTrackedInputStart = true;
+        manager._lastTrackedAnalysisKey = 'old';
+
+        manager.analyzeText();
+
+        assert.strictEqual(manager._latestAnalysis, null);
+        assert.strictEqual(manager._hasTrackedInputStart, false);
+        assert.strictEqual(manager._lastTrackedAnalysisKey, '');
+    });
 });
 
 describe('UIManager: スコアリングと全部盛り判定', () => {
