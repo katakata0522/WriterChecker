@@ -1,9 +1,9 @@
 /**
- * Writer Checker — Service Worker
- * Cache-first for local, stale-while-revalidate for external.
+ * Writer Checker — Service Worker v1.4.0
+ * Network-first for navigation, stale-while-revalidate for local/external assets.
  */
 
-const CACHE_NAME = 'writer-checker-v1.3.0';
+const CACHE_NAME = 'writer-checker-v1.4.0';
 const ASSETS = [
     './',
     './index.html',
@@ -36,9 +36,22 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    // ナビゲーション (ページ読み込み) → Network-first
     if (event.request.mode === 'navigate') {
         event.respondWith(
-            caches.match('./index.html').then((cached) => cached || fetch(event.request))
+            fetch(event.request)
+                .then((response) => {
+                    // 成功したらキャッシュも更新
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                    return response;
+                })
+                .catch(() => {
+                    // オフライン時のみキャッシュから返す
+                    return caches.match(event.request)
+                        .then((cached) => cached || caches.match('./index.html'))
+                        .then((fallback) => fallback || new Response('Offline', { status: 503 }));
+                })
         );
         return;
     }
@@ -53,9 +66,7 @@ self.addEventListener('fetch', (event) => {
                 const fetchPromise = fetch(event.request).then((response) => {
                     if (response.ok) {
                         const clone = response.clone();
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(event.request, clone);
-                        });
+                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
                     }
                     return response;
                 }).catch(() => cached || new Response('', { status: 503 }));
@@ -65,16 +76,23 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Cache-first for local assets
+    // ローカルアセット → Stale-while-revalidate (常に最新を取得しつつキャッシュも返す)
     event.respondWith(
         caches.match(event.request).then((cached) => {
-            if (cached) return cached;
-            return fetch(event.request).catch(() => {
+            const fetchPromise = fetch(event.request).then((response) => {
+                if (response.ok) {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                }
+                return response;
+            }).catch(() => {
+                if (cached) return cached;
                 if (event.request.destination === 'document') {
                     return caches.match('./index.html');
                 }
                 return new Response('', { status: 503, statusText: 'Offline' });
             });
+            return cached || fetchPromise;
         })
     );
 });
