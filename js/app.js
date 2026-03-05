@@ -5,6 +5,7 @@
 import { StorageManager } from './StorageManager.js';
 import { RuleEngine } from './RuleEngine.js';
 import { UIManager } from './UIManager.js';
+import { initPWA } from './PWAManager.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const storageManager = new StorageManager();
@@ -12,4 +13,5 @@ document.addEventListener('DOMContentLoaded', () => {
     const uiManager = new UIManager(storageManager, ruleEngine);
 
     uiManager.analyzeText();
+    initPWA();
 });
