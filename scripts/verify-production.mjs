@@ -34,7 +34,7 @@ async function main() {
     const indexRes = await fetchWithCheck(indexUrl, 'text/html');
     const html = await indexRes.text();
 
-    const stylePath = findAsset(html, /<link[^>]+href="([^"]*style\.css\?v=[^"]+)"/i, 'style.css');
+    const stylePath = findAsset(html, /<link[^>]+href="([^"]*style(?:\.min)?\.css\?v=[^"]+)"/i, 'style.css');
     const appPath = findAsset(html, /<script[^>]+src="([^"]*js\/app\.js\?v=[^"]+)"/i, 'app.js');
 
     const checks = [

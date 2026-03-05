@@ -22,8 +22,10 @@ if (!(Test-Path -LiteralPath $SshKeyPath)) {
 }
 
 $files = @(
+    ".htaccess",
     "index.html",
     "style.css",
+    "style.min.css",
     "manifest.json",
     "sw.js",
     "robots.txt",
@@ -44,6 +46,12 @@ $dirs = @(
 
 Push-Location $ProjectDir
 try {
+    Write-Host "Building minified CSS..."
+    & node "$ProjectDir/scripts/build-css.mjs"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to build CSS."
+    }
+
     $remoteTarget = "${SshUser}@${SshHost}:$RemoteDir/"
     Write-Host "Syncing files to Xserver..."
 

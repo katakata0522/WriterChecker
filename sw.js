@@ -4,7 +4,7 @@
  * - 静的アセット: stale-while-revalidate
  */
 
-const CACHE_VERSION = '20260306b';
+const CACHE_VERSION = '20260306c';
 const STATIC_CACHE_NAME = `writer-checker-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `writer-checker-runtime-${CACHE_VERSION}`;
 
@@ -12,6 +12,7 @@ const APP_SHELL = [
     './',
     './index.html',
     './style.css',
+    './style.min.css',
     './manifest.json',
     './robots.txt',
     './sitemap.xml',
