@@ -177,7 +177,10 @@ export class StorageManager {
     // =========================================================================
 
     _isValidRuleSetsObject(obj) {
-        return typeof obj === 'object' && obj !== null && !Array.isArray(obj);
+        if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return false;
+        return Object.values(obj).every(
+            (v) => Array.isArray(v) && v.every((r) => typeof r === 'object' && r !== null && typeof r.target === 'string')
+        );
     }
 
     /** V1（単一配列）→ V2（名前付きオブジェクト）マイグレーション */

@@ -642,10 +642,11 @@ export class UIManager {
         const tokens = this.ruleEngine.tokenize(text);
         let matchCount = 0;
         const occurrenceCounters = {};
+        const fragment = document.createDocumentFragment();
 
         for (const token of tokens) {
             if (token.type === 'text') {
-                this.resultOutput.appendChild(document.createTextNode(token.content));
+                fragment.appendChild(document.createTextNode(token.content));
             } else if (token.type === 'highlight') {
                 matchCount++;
                 const span = document.createElement('span');
@@ -659,18 +660,19 @@ export class UIManager {
 
                 span.setAttribute('data-replacement', token.replacement || '削除');
                 span.textContent = token.content;
-                this.resultOutput.appendChild(span);
+                fragment.appendChild(span);
 
                 // 差分プレビュー
                 if (token.replacement !== undefined && token.replacement !== '') {
                     const ins = document.createElement('span');
                     ins.className = 'inserted';
                     ins.textContent = token.replacement;
-                    this.resultOutput.appendChild(ins);
+                    fragment.appendChild(ins);
                 }
             }
         }
 
+        this.resultOutput.appendChild(fragment);
         this.matchCountBadge.textContent = matchCount.toString();
         this._updateBadgeStyle(matchCount);
     }

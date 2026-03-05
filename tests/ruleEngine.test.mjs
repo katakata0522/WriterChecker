@@ -212,16 +212,16 @@ describe('RuleEngine: escapeRegExp', () => {
     });
 
     it('正規表現の特殊文字をエスケープする', () => {
-        assert.strictEqual(engine.escapeRegExp('(test)'), '\\(test\\)');
-        assert.strictEqual(engine.escapeRegExp('[abc]'), '\\[abc\\]');
-        assert.strictEqual(engine.escapeRegExp('a.b'), 'a\\.b');
-        assert.strictEqual(engine.escapeRegExp('a+b'), 'a\\+b');
-        assert.strictEqual(engine.escapeRegExp('a*b'), 'a\\*b');
-        assert.strictEqual(engine.escapeRegExp('a?b'), 'a\\?b');
+        assert.strictEqual(RuleEngine.escapeRegExp('(test)'), '\\(test\\)');
+        assert.strictEqual(RuleEngine.escapeRegExp('[abc]'), '\\[abc\\]');
+        assert.strictEqual(RuleEngine.escapeRegExp('a.b'), 'a\\.b');
+        assert.strictEqual(RuleEngine.escapeRegExp('a+b'), 'a\\+b');
+        assert.strictEqual(RuleEngine.escapeRegExp('a*b'), 'a\\*b');
+        assert.strictEqual(RuleEngine.escapeRegExp('a?b'), 'a\\?b');
     });
 
     it('特殊文字がない場合はそのまま', () => {
-        assert.strictEqual(engine.escapeRegExp('テスト'), 'テスト');
+        assert.strictEqual(RuleEngine.escapeRegExp('テスト'), 'テスト');
     });
 });
 

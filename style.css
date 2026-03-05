@@ -29,6 +29,10 @@
     display: none !important;
 }
 
+.mt-sm {
+    margin-top: 0.5rem;
+}
+
 body {
     font-family: var(--font-family);
     background-color: var(--bg-color);
@@ -69,6 +73,10 @@ body {
     border-radius: 1rem;
     margin-left: 0.5rem;
     vertical-align: middle;
+}
+
+.badge-free {
+    background-color: var(--success-color);
 }
 
 .header-right {
@@ -851,10 +859,6 @@ textarea {
     to {
         transform: translateX(0);
     }
-}
-
-.side-panel:not(.hidden) {
-    transform: translateX(0);
 }
 
 .side-panel-header {

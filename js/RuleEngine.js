@@ -23,7 +23,7 @@ export class RuleEngine {
      * @param {string} str
      * @returns {string}
      */
-    escapeRegExp(str) {
+    static escapeRegExp(str) {
         return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
@@ -35,7 +35,7 @@ export class RuleEngine {
     _buildRegex(rule) {
         if (!rule.target) return null;
         try {
-            const pattern = rule.isRegex ? rule.target : this.escapeRegExp(rule.target);
+            const pattern = rule.isRegex ? rule.target : RuleEngine.escapeRegExp(rule.target);
             return new RegExp(pattern, 'g');
         } catch (e) {
             console.warn(`無効な正規表現パターン: "${rule.target}"`, e.message);
