@@ -1084,3 +1084,83 @@ textarea {
 .bookmarklet-steps li {
     margin-bottom: 0.25rem;
 }
+
+/* B-1: 差分ビュー */
+.diff-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.diff-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-color);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.diff-del {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.2rem;
+    text-decoration: line-through;
+    font-weight: 500;
+}
+
+.diff-ins {
+    background: #dcfce7;
+    color: #166534;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.2rem;
+    font-weight: 500;
+}
+
+.diff-arrow {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.diff-count {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-left: auto;
+}
+
+/* B-4: コンテキストメニュー */
+.context-menu {
+    position: absolute;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    z-index: 2000;
+    min-width: 200px;
+    padding: 0.25rem;
+    animation: fadeIn 0.15s ease;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-color);
+    border-radius: 0.25rem;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.context-menu-item:hover {
+    background: var(--bg-color);
+    color: var(--primary-color);
+}

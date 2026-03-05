@@ -50,6 +50,7 @@ export class UIManager {
         this.pasteBtn = document.getElementById('pasteBtn');
         this.copyBtn = document.getElementById('copyBtn');
         this.undoBtn = document.getElementById('undoBtn');
+        this.sampleBtn = document.getElementById('sampleBtn');
 
         // ルールセットセレクタ
         this.ruleSetSelector = document.getElementById('ruleSetSelector');
@@ -121,19 +122,34 @@ export class UIManager {
         this._bindDragDropEvents();
         this._bindExternalEvents();
         this._bindSidePanelEvents();
+        this._bindContextMenu(); // B-4
+        this._hasUnsavedEdits = false; // C-2
     }
 
     /** ルールセットの選択・作成・削除 */
     _bindRuleSetEvents() {
         this.ruleSetSelector.addEventListener('change', (e) => {
-            this.activeSetName = e.target.value;
-            this.rules = this.allRuleSets[this.activeSetName];
-            this.ruleEngine.setRules(this.rules);
-            this.storageManager.saveActiveSetName(this.activeSetName);
-            this._updatePresetTooltip(); // F-02
-            this._applyPresetAsterisk(); // F-07
-            this.renderRuleToggleList(); // サイドパネル更新
-            this.analyzeText();
+            const newName = e.target.value;
+            const doSwitch = () => {
+                this.activeSetName = newName;
+                this.rules = this.allRuleSets[this.activeSetName];
+                this.ruleEngine.setRules(this.rules);
+                this.storageManager.saveActiveSetName(this.activeSetName);
+                this._updatePresetTooltip();
+                this._applyPresetAsterisk();
+                this.renderRuleToggleList();
+                this.analyzeText();
+            };
+            // C-2: 未保存のカスタムルールがあれば確認
+            if (this._hasUnsavedEdits) {
+                this._showConfirm(
+                    '編集中のルールがあります。保存せずにルールセットを切り替えますか？',
+                    () => { this._hasUnsavedEdits = false; doSwitch(); }
+                );
+                this.ruleSetSelector.value = this.activeSetName;
+            } else {
+                doSwitch();
+            }
         });
 
         // 新規作成モーダル
@@ -316,6 +332,16 @@ export class UIManager {
             this.sourceText.focus();
         });
 
+        // A-2: サンプルテキスト挿入
+        if (this.sampleBtn) {
+            this.sampleBtn.addEventListener('click', () => {
+                const sample = `お世話になっております。\n\n本日は先日の打ち合わせの件についてご連絡致します。\n以下の内容を確認して頂ければ幸いです。\n\n全ての資料を添付しておりますので、ご確認下さい。\n何卒宜しくお願い致します。\n\n尚、不明な点が御座いましたら、何時でもご連絡下さい。\n了解しましたと返信を頂けますと幸いです。\n\n※この文章には**AI装飾**と表記ゆれが含まれています。`;
+                this._replaceTextareaContent(sample);
+                this.analyzeText();
+                this._showToast('サンプルテキストを挿入しました', 'fa-flask');
+            });
+        }
+
         this.pasteBtn.addEventListener('click', async () => {
             try {
                 const text = await navigator.clipboard.readText();
@@ -348,7 +374,7 @@ export class UIManager {
             const changes = this._generateChangeReport(original, cleaned);
             this._replaceTextareaContent(cleaned);
             this.analyzeText();
-            this._showChangeReport(changes);
+            this._showDiffView(changes);
             this.undoBtn.style.display = '';
         });
 
@@ -811,12 +837,25 @@ export class UIManager {
     //  インポート・共有
     // =========================================================================
 
+    // C-3: エラーメッセージを具体化したインポート処理
     _processImportedJSON(jsonString) {
         try {
-            const data = JSON.parse(jsonString);
+            let data;
+            try {
+                data = JSON.parse(jsonString);
+            } catch (parseErr) {
+                this._showToast('JSONの解析に失敗しました。ファイルが破損しているか、JSON形式ではありません。', 'fa-triangle-exclamation');
+                return;
+            }
 
             if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-                throw new Error('Invalid format');
+                this._showToast('ファイル形式が正しくありません。Writer Checkerからエクスポートした .json ファイルを選択してください。', 'fa-triangle-exclamation');
+                return;
+            }
+
+            if (Object.keys(data).length === 0) {
+                this._showToast('ファイルにルールセットが含まれていません。空のファイルです。', 'fa-triangle-exclamation');
+                return;
             }
 
             let importCount = 0;
@@ -863,11 +902,11 @@ export class UIManager {
                 }
                 this._showToast(msg);
             } else {
-                this._showToast('有効なルールセットが見つかりませんでした', 'fa-triangle-exclamation');
+                this._showToast('有効なルールセットが見つかりませんでした。各ルールに「target」プロパティが必要です。', 'fa-triangle-exclamation');
             }
         } catch (err) {
             console.error('Import error', err);
-            this._showToast('ファイルの読み込みに失敗しました', 'fa-triangle-exclamation');
+            this._showToast('予期しないエラーが発生しました。ファイルの内容を確認してください。', 'fa-triangle-exclamation');
         }
     }
 
@@ -1175,5 +1214,120 @@ export class UIManager {
             item.append(checkbox, preview);
             this.ruleToggleList.appendChild(item);
         });
+    }
+    // =========================================================================
+    //  B-1: 差分ビュー（修正前後の比較）
+    // =========================================================================
+
+    _showDiffView(changes) {
+        if (changes.length === 0) return;
+
+        // 既存の差分ビューを削除
+        const existing = document.getElementById('diffViewModal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'diffViewModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content modal-content-sm" style="max-width:560px;">
+                <div class="modal-header">
+                    <h2><i class="fa-solid fa-code-compare"></i> 修正結果 (${changes.length}件)</h2>
+                    <button class="btn-close" id="closeDiffView"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body" style="max-height:400px;overflow-y:auto;padding:1rem 1.5rem;">
+                    <div id="diffList" class="diff-list"></div>
+                </div>
+                <div class="modal-footer" style="padding:0.75rem 1.5rem;text-align:right;border-top:1px solid var(--border-color);">
+                    <button class="btn btn-sm btn-primary" id="closeDiffOk">OK</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        const diffList = document.getElementById('diffList');
+        const grouped = {};
+        for (const c of changes) {
+            const key = `${c.from}→${c.to}`;
+            grouped[key] = grouped[key] || { from: c.from, to: c.to, count: 0 };
+            grouped[key].count++;
+        }
+        for (const item of Object.values(grouped)) {
+            const row = document.createElement('div');
+            row.className = 'diff-row';
+            row.innerHTML = `
+                <span class="diff-del">${this._escapeHtml(item.from)}</span>
+                <span class="diff-arrow">→</span>
+                <span class="diff-ins">${this._escapeHtml(item.to || '（削除）')}</span>
+                ${item.count > 1 ? `<span class="diff-count">×${item.count}</span>` : ''}
+            `;
+            diffList.appendChild(row);
+        }
+
+        const close = () => modal.remove();
+        document.getElementById('closeDiffView').addEventListener('click', close);
+        document.getElementById('closeDiffOk').addEventListener('click', close);
+        modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+    }
+
+    _escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // =========================================================================
+    //  B-4: ハイライト右クリック「このルールを無視」
+    // =========================================================================
+
+    _bindContextMenu() {
+        this.resultOutput.addEventListener('contextmenu', (e) => {
+            const highlight = e.target.closest('.highlight');
+            if (!highlight) return;
+            e.preventDefault();
+
+            // 既存メニューを削除
+            this._removeContextMenu();
+
+            const targetText = highlight.getAttribute('data-target');
+            const menu = document.createElement('div');
+            menu.className = 'context-menu';
+            menu.innerHTML = `
+                <button class="context-menu-item" data-action="ignore">
+                    <i class="fa-solid fa-eye-slash"></i> 「${this._escapeHtml(targetText.substring(0, 15))}」のルールを無効化
+                </button>
+            `;
+            menu.style.left = `${e.pageX}px`;
+            menu.style.top = `${e.pageY}px`;
+            document.body.appendChild(menu);
+
+            menu.querySelector('[data-action="ignore"]').addEventListener('click', () => {
+                const rule = this.rules.find(r => r.target === targetText);
+                if (rule) {
+                    rule.enabled = false;
+                    this.ruleEngine.setRules(this.rules);
+                    this.allRuleSets[this.activeSetName] = this.rules;
+                    this.storageManager.saveAllRuleSets(this.allRuleSets);
+                    this.renderRuleToggleList();
+                    this.analyzeText();
+                    this._showToast(`「${targetText}」のルールを無効化しました`, 'fa-eye-slash');
+                }
+                this._removeContextMenu();
+            });
+
+            // クリックで閉じる
+            const closeMenu = (ev) => {
+                if (!menu.contains(ev.target)) {
+                    this._removeContextMenu();
+                    document.removeEventListener('click', closeMenu);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closeMenu), 0);
+        });
+    }
+
+    _removeContextMenu() {
+        const old = document.querySelector('.context-menu');
+        if (old) old.remove();
     }
 }
