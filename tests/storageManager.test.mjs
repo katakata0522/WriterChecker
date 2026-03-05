@@ -77,4 +77,23 @@ describe('StorageManager', () => {
         sm.saveAnalyticsEnabled(true);
         assert.strictEqual(sm.loadAnalyticsEnabled(), true);
     });
+
+    it('誤検知フィードバックを件数加算して保存できる', () => {
+        const sm = new StorageManager();
+        const first = sm.incrementFalsePositiveFeedback('rule:0:全て->すべて', {
+            target: '全て',
+            replacement: 'すべて',
+            reason: '常用ひらがな表記に統一'
+        });
+        const second = sm.incrementFalsePositiveFeedback('rule:0:全て->すべて', {
+            target: '全て',
+            replacement: 'すべて',
+            reason: '常用ひらがな表記に統一'
+        });
+
+        assert.strictEqual(first.count, 1);
+        assert.strictEqual(second.count, 2);
+        const loaded = sm.loadFalsePositiveFeedback();
+        assert.strictEqual(loaded['rule:0:全て->すべて'].count, 2);
+    });
 });

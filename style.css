@@ -492,6 +492,63 @@ textarea {
     transform: translateX(-50%) translateY(-4px);
 }
 
+.issue-insight-panel {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--border-color);
+    white-space: normal;
+}
+
+.issue-insight-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 0.45rem;
+}
+
+.issue-insight-list {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.issue-insight-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.55rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-color);
+}
+
+.issue-insight-main {
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--text-main);
+}
+
+.issue-feedback-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.issue-insight-more {
+    margin-top: 0.35rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .issue-insight-row {
+        flex-direction: column;
+    }
+
+    .issue-feedback-btn {
+        align-self: flex-end;
+    }
+}
+
 
 
 /* Modal */

@@ -162,6 +162,65 @@ describe('UIManager: 追加の堅牢性', () => {
         assert.strictEqual(manager._hasTrackedInputStart, false);
         assert.strictEqual(manager._lastTrackedAnalysisKey, '');
     });
+
+    it('ルールメモがある場合は理由文にメモを優先利用する', () => {
+        const manager = Object.create(UIManager.prototype);
+        const reason = manager._buildRuleReason(
+            { target: '全て', replacement: 'すべて', memo: '常用ひらがな表記に統一' },
+            { content: '全て', replacement: 'すべて' }
+        );
+
+        assert.match(reason, /常用ひらがな表記に統一/);
+    });
+
+    it('誤検知フィードバック登録で件数加算とイベント送信が行われる', () => {
+        const manager = Object.create(UIManager.prototype);
+        manager._falsePositiveFeedback = {};
+        const stored = [];
+        const tracked = [];
+        manager.storageManager = {
+            saveFalsePositiveFeedback: (payload) => stored.push(payload)
+        };
+        manager._track = (eventName, params) => tracked.push({ eventName, params });
+
+        const issue = {
+            key: 'rule:0:全て->すべて',
+            target: '全て',
+            replacement: 'すべて',
+            reason: '常用ひらがな表記に統一'
+        };
+        const first = manager._recordFalsePositiveFeedback(issue);
+        const second = manager._recordFalsePositiveFeedback(issue);
+
+        assert.strictEqual(first.count, 1);
+        assert.strictEqual(second.count, 2);
+        assert.strictEqual(stored.length, 2);
+        assert.strictEqual(tracked.length, 2);
+        assert.strictEqual(tracked[0].eventName, 'false_positive_reported');
+    });
+
+    it('長文かつWorker利用可能ならWorker解析を選択する', async () => {
+        const manager = Object.create(UIManager.prototype);
+        manager.WORKER_THRESHOLD = 10;
+        manager.ruleEngine = { tokenize: () => [{ type: 'text', content: 'sync' }] };
+        manager._shouldUseWorkerForText = () => true;
+        manager._analyzeTokensInWorker = async () => [{ type: 'text', content: 'worker' }];
+
+        const tokens = await manager._tokenizeForAnalysis('あいうえおかきくけこさ');
+
+        assert.deepStrictEqual(tokens, [{ type: 'text', content: 'worker' }]);
+    });
+
+    it('短文はWorkerを使わず同期解析を選択する', async () => {
+        const manager = Object.create(UIManager.prototype);
+        manager.WORKER_THRESHOLD = 9999;
+        manager.ruleEngine = { tokenize: (text) => [{ type: 'text', content: text }] };
+        manager._shouldUseWorkerForText = UIManager.prototype._shouldUseWorkerForText;
+
+        const tokens = await manager._tokenizeForAnalysis('短文');
+
+        assert.deepStrictEqual(tokens, [{ type: 'text', content: '短文' }]);
+    });
 });
 
 describe('UIManager: スコアリングと全部盛り判定', () => {

@@ -10,6 +10,7 @@ export class StorageManager {
         this.STORAGE_KEY_ACTIVE_SET = 'writerCheckerActiveSet';
         this.STORAGE_KEY_ASTERISKS = 'writerCheckerRemoveAsterisks';
         this.STORAGE_KEY_ANALYTICS_ENABLED = 'writerCheckerAnalyticsEnabled';
+        this.STORAGE_KEY_FALSE_POSITIVE_FEEDBACK = 'writerCheckerFalsePositiveFeedbackV1';
         this.UNSAFE_RULE_SET_NAMES = new Set(['__proto__', 'constructor', 'prototype']);
 
         /** @type {Object<string, Array<{target: string, replacement: string, isRegex?: boolean}>>} */
@@ -202,6 +203,51 @@ export class StorageManager {
     }
 
     // =========================================================================
+    //  誤検知フィードバック
+    // =========================================================================
+
+    loadFalsePositiveFeedback() {
+        try {
+            const saved = localStorage.getItem(this.STORAGE_KEY_FALSE_POSITIVE_FEEDBACK);
+            if (!saved) return {};
+            const parsed = JSON.parse(saved);
+            return this._sanitizeFalsePositiveFeedbackMap(parsed);
+        } catch (e) {
+            console.error('誤検知フィードバックの読み込みに失敗:', e);
+            return {};
+        }
+    }
+
+    saveFalsePositiveFeedback(feedbackMap) {
+        try {
+            const sanitized = this._sanitizeFalsePositiveFeedbackMap(feedbackMap);
+            localStorage.setItem(this.STORAGE_KEY_FALSE_POSITIVE_FEEDBACK, JSON.stringify(sanitized));
+        } catch (e) {
+            console.error('誤検知フィードバックの保存に失敗:', e);
+        }
+    }
+
+    incrementFalsePositiveFeedback(issueKey, issueMeta = {}) {
+        if (!this._isSafeFeedbackKey(issueKey)) return null;
+        const current = this.loadFalsePositiveFeedback();
+        const previous = current[issueKey] || { count: 0 };
+        const target = typeof issueMeta.target === 'string' ? issueMeta.target.slice(0, 120) : '';
+        const replacement = typeof issueMeta.replacement === 'string' ? issueMeta.replacement.slice(0, 120) : '';
+        const reason = typeof issueMeta.reason === 'string' ? issueMeta.reason.slice(0, 200) : '';
+
+        const next = {
+            count: Math.max(0, Math.floor(previous.count || 0)) + 1,
+            target,
+            replacement,
+            reason,
+            lastReportedAt: new Date().toISOString()
+        };
+        current[issueKey] = next;
+        this.saveFalsePositiveFeedback(current);
+        return next;
+    }
+
+    // =========================================================================
     //  ヘルパー
     // =========================================================================
 
@@ -249,6 +295,42 @@ export class StorageManager {
             sanitizedSets[setName] = sanitizedRules;
         }
         return sanitizedSets;
+    }
+
+    _isSafeFeedbackKey(key) {
+        return typeof key === 'string'
+            && key.length > 0
+            && key.length <= 180
+            && !this.UNSAFE_RULE_SET_NAMES.has(key);
+    }
+
+    _sanitizeFalsePositiveFeedbackItem(value) {
+        if (typeof value !== 'object' || value === null) return null;
+        const count = Number.isFinite(value.count) ? Math.floor(value.count) : 0;
+        if (count <= 0) return null;
+
+        const sanitized = {
+            count: Math.min(count, 999999),
+            target: typeof value.target === 'string' ? value.target.slice(0, 120) : '',
+            replacement: typeof value.replacement === 'string' ? value.replacement.slice(0, 120) : '',
+            reason: typeof value.reason === 'string' ? value.reason.slice(0, 200) : ''
+        };
+        if (typeof value.lastReportedAt === 'string' && value.lastReportedAt) {
+            sanitized.lastReportedAt = value.lastReportedAt;
+        }
+        return sanitized;
+    }
+
+    _sanitizeFalsePositiveFeedbackMap(map) {
+        if (typeof map !== 'object' || map === null || Array.isArray(map)) return {};
+        const sanitized = {};
+        for (const [key, value] of Object.entries(map)) {
+            if (!this._isSafeFeedbackKey(key)) continue;
+            const item = this._sanitizeFalsePositiveFeedbackItem(value);
+            if (!item) continue;
+            sanitized[key] = item;
+        }
+        return sanitized;
     }
 
     /** V1（単一配列）→ V2（名前付きオブジェクト）マイグレーション */

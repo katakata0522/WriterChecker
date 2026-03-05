@@ -36,6 +36,14 @@ export class UIManager {
         this._latestAnalysis = null;
         this._hasTrackedInputStart = false;
         this._lastTrackedAnalysisKey = '';
+        this.WORKER_THRESHOLD = 3000;
+        this._tokenizeWorker = null;
+        this._workerPending = new Map();
+        this._workerRequestSeq = 0;
+        this._analysisRequestSeq = 0;
+        this._analysisTokensSource = 'sync';
+        this._falsePositiveFeedback = this.storageManager.loadFalsePositiveFeedback?.() || {};
+        this._reportedIssueKeys = new Set();
 
         this._cacheElements();
         this._bindEvents();
@@ -500,6 +508,12 @@ export class UIManager {
 
         // 個別クリック修正 (F-10: 確認ポップアップ付き / F-13: 指摘のみモード対応)
         this.resultOutput.addEventListener('click', (e) => {
+            const feedbackBtn = e.target.closest('.issue-feedback-btn');
+            if (feedbackBtn) {
+                this._handleIssueFeedbackClick(feedbackBtn);
+                return;
+            }
+
             const highlight = e.target.closest('.highlight');
             if (!highlight) return;
 
@@ -590,6 +604,7 @@ export class UIManager {
         this._setupBookmarkletLink();
         this._importFromWindowName();
         this._importFromHash();
+        window.addEventListener('beforeunload', () => this._disposeTokenizeWorker());
 
         window.addEventListener('message', (e) => {
             if (!e.data || e.data.type !== 'writerChecker') return;
@@ -799,6 +814,7 @@ export class UIManager {
         const text = this.sourceText.value;
         this.resultOutput.innerHTML = '';
         this._updateStatusBar(text);
+        const requestId = ++this._analysisRequestSeq;
 
         if (!text) {
             const placeholderText = 'テキストを入力するか貼り付けると、レギュレーション違反がハイライトされます。';
@@ -818,48 +834,82 @@ export class UIManager {
             this._updateBadgeStyle(0);
             this._updateWritingScoreStatus(null);
             this._updateComprehensiveStatus(null);
-            return;
+            return Promise.resolve();
         }
 
-        const tokens = this.ruleEngine.tokenize(text);
+        return this._tokenizeForAnalysis(text)
+            .then((tokens) => {
+                if (!this._isLatestAnalysisRequest(requestId, text)) return;
+                this._renderAnalysisResult(text, tokens);
+            })
+            .catch(() => {
+                if (!this._isLatestAnalysisRequest(requestId, text)) return;
+                this._analysisTokensSource = 'sync_fallback';
+                this._renderAnalysisResult(text, this.ruleEngine.tokenize(text));
+            });
+    }
+
+    _isLatestAnalysisRequest(requestId, text) {
+        return requestId === this._analysisRequestSeq && this.sourceText.value === text;
+    }
+
+    _renderAnalysisResult(text, tokens) {
         let matchCount = 0;
         const occurrenceCounters = {};
-        const fragment = document.createDocumentFragment();
+        const issues = [];
+        const canUseDom = typeof document !== 'undefined'
+            && typeof document.createDocumentFragment === 'function'
+            && typeof document.createElement === 'function'
+            && typeof document.createTextNode === 'function';
+        const fragment = canUseDom ? document.createDocumentFragment() : null;
 
         for (const token of tokens) {
             if (token.type === 'text') {
-                fragment.appendChild(document.createTextNode(token.content));
+                if (fragment) fragment.appendChild(document.createTextNode(token.content));
             } else if (token.type === 'highlight') {
                 matchCount++;
-                const span = document.createElement('span');
-                span.className = 'highlight';
-
                 const targetKey = token.content;
                 occurrenceCounters[targetKey] = (occurrenceCounters[targetKey] || 0);
-                span.setAttribute('data-target', targetKey);
-                span.setAttribute('data-occurrence', occurrenceCounters[targetKey].toString());
+                const occurrence = occurrenceCounters[targetKey];
                 occurrenceCounters[targetKey]++;
-                if (Number.isInteger(token.ruleIndex) && token.ruleIndex >= 0) {
-                    span.setAttribute('data-rule-index', token.ruleIndex.toString());
-                }
-                span.setAttribute('data-rule-target', token.target || token.content);
 
-                span.setAttribute('data-replacement', token.replacement ?? '');
-                span.setAttribute('data-match', token.content);
-                span.textContent = token.content;
-                fragment.appendChild(span);
+                const issue = this._buildIssueDetail(token);
+                issues.push(issue);
 
-                // 差分プレビュー
-                if (token.replacement !== undefined && token.replacement !== '') {
-                    const ins = document.createElement('span');
-                    ins.className = 'inserted';
-                    ins.textContent = token.replacement;
-                    fragment.appendChild(ins);
+                if (fragment) {
+                    const span = document.createElement('span');
+                    span.className = 'highlight';
+                    span.setAttribute('data-target', targetKey);
+                    span.setAttribute('data-occurrence', occurrence.toString());
+                    if (Number.isInteger(token.ruleIndex) && token.ruleIndex >= 0) {
+                        span.setAttribute('data-rule-index', token.ruleIndex.toString());
+                    }
+                    span.setAttribute('data-rule-target', token.target || token.content);
+                    span.setAttribute('data-replacement', token.replacement ?? '');
+                    span.setAttribute('data-match', token.content);
+                    span.setAttribute('data-issue-key', issue.key);
+                    span.setAttribute('data-reason', issue.reason);
+                    span.title = issue.reason;
+                    span.textContent = token.content;
+                    fragment.appendChild(span);
+
+                    // 差分プレビュー
+                    if (token.replacement !== undefined && token.replacement !== '') {
+                        const ins = document.createElement('span');
+                        ins.className = 'inserted';
+                        ins.textContent = token.replacement;
+                        fragment.appendChild(ins);
+                    }
                 }
             }
         }
 
-        this.resultOutput.appendChild(fragment);
+        if (fragment) {
+            this.resultOutput.appendChild(fragment);
+            this._renderIssueInsightList(issues);
+        } else {
+            this.resultOutput.innerHTML = text;
+        }
         this.matchCountBadge.textContent = matchCount.toString();
         if (this.matchCountStatus) this.matchCountStatus.textContent = `${matchCount}件`;
         this._updateBadgeStyle(matchCount);
@@ -885,6 +935,7 @@ export class UIManager {
             matchCount,
             metrics,
             doubleHonorificIssues,
+            issues,
             writingScore,
             comprehensiveSummary
         };
@@ -899,9 +950,96 @@ export class UIManager {
                 score: writingScore.score,
                 confidence: writingScore.confidence,
                 text_length: metrics.noSpaceChars,
-                ruleset_name: this.activeSetName
+                ruleset_name: this.activeSetName,
+                token_source: this._analysisTokensSource
             });
         }
+    }
+
+    _buildIssueDetail(token) {
+        const rule = this._findRuleForHighlight(token.content, token.ruleIndex, token.target) || null;
+        const replacement = token.replacement ?? '';
+        const reason = this._buildRuleReason(rule, token);
+        const key = this._buildIssueKey({
+            ruleIndex: token.ruleIndex,
+            target: token.target || token.content,
+            replacement
+        });
+        return {
+            key,
+            target: token.content,
+            replacement,
+            reason,
+            ruleIndex: Number.isInteger(token.ruleIndex) ? token.ruleIndex : null,
+            ruleTarget: token.target || token.content
+        };
+    }
+
+    _buildIssueKey({ ruleIndex, target, replacement }) {
+        const normalizedIndex = Number.isInteger(ruleIndex) ? ruleIndex : 'na';
+        const safeTarget = typeof target === 'string' ? target.replace(/\s+/g, ' ').slice(0, 80) : '';
+        const safeReplacement = typeof replacement === 'string' ? replacement.replace(/\s+/g, ' ').slice(0, 80) : '';
+        return `rule:${normalizedIndex}:${safeTarget}->${safeReplacement}`;
+    }
+
+    _buildRuleReason(rule, token) {
+        if (typeof rule?.memo === 'string' && rule.memo.trim()) return rule.memo.trim();
+        const replacement = token?.replacement ?? '';
+        if (!replacement) return '不要な装飾・表記のため削除推奨';
+        if (rule?.isRegex) return `正規表現ルール「${rule.target}」に一致したため置換候補です`;
+        if (token?.content === replacement) return '表記ゆれ統一ルールに一致';
+        return `「${token?.content || ''}」を「${replacement}」へ統一するルールです`;
+    }
+
+    _renderIssueInsightList(issues) {
+        if (!Array.isArray(issues) || issues.length === 0) return;
+        if (typeof document === 'undefined' || typeof document.createElement !== 'function') return;
+        const section = document.createElement('section');
+        section.className = 'issue-insight-panel';
+
+        const title = document.createElement('p');
+        title.className = 'issue-insight-title';
+        title.textContent = '検出理由';
+        section.appendChild(title);
+
+        const list = document.createElement('div');
+        list.className = 'issue-insight-list';
+        const renderItems = issues.slice(0, 80);
+        for (const issue of renderItems) {
+            const row = document.createElement('div');
+            row.className = 'issue-insight-row';
+
+            const main = document.createElement('div');
+            main.className = 'issue-insight-main';
+            const before = issue.target || '対象';
+            const after = issue.replacement || '（削除）';
+            main.textContent = `「${before}」→「${after}」: ${issue.reason}`;
+
+            const action = document.createElement('button');
+            action.type = 'button';
+            action.className = 'btn btn-sm btn-ghost issue-feedback-btn';
+            action.dataset.issueKey = issue.key;
+            action.dataset.issueTarget = issue.target || '';
+            action.dataset.issueReplacement = issue.replacement || '';
+            action.dataset.issueReason = issue.reason || '';
+            const feedback = this._falsePositiveFeedback?.[issue.key];
+            action.textContent = feedback?.count > 0
+                ? `誤検知を報告済み (${feedback.count})`
+                : '誤検知を報告';
+
+            row.append(main, action);
+            list.appendChild(row);
+        }
+        section.appendChild(list);
+
+        if (issues.length > renderItems.length) {
+            const more = document.createElement('p');
+            more.className = 'issue-insight-more';
+            more.textContent = `他 ${issues.length - renderItems.length} 件`;
+            section.appendChild(more);
+        }
+
+        this.resultOutput.appendChild(section);
     }
 
     _updateStatusBar(text) {
@@ -1228,7 +1366,7 @@ export class UIManager {
         });
     }
 
-    _openFullCheckModalFromCurrentText() {
+    async _openFullCheckModalFromCurrentText() {
         if (!this.sourceText.value) {
             this._showToast('テキストが入力されていません', 'fa-info-circle');
             this._track('full_check_open_failed', { reason: 'empty_text' });
@@ -1236,7 +1374,7 @@ export class UIManager {
         }
 
         if (!this._latestAnalysis || this._latestAnalysis.text !== this.sourceText.value) {
-            this.analyzeText();
+            await this.analyzeText();
         }
         if (!this._latestAnalysis) return;
 
@@ -1357,7 +1495,7 @@ export class UIManager {
         }
 
         if (!this._latestAnalysis || this._latestAnalysis.text !== this.sourceText.value) {
-            this.analyzeText();
+            await this.analyzeText();
         }
         if (!this._latestAnalysis) return;
 
@@ -1400,6 +1538,154 @@ export class UIManager {
     _markRulesDirty() {
         this._hasUnsavedEdits = true;
         this._updateSaveStateStatus();
+    }
+
+    _handleIssueFeedbackClick(button) {
+        const issueKey = button?.dataset?.issueKey;
+        if (!issueKey) return;
+        if (this._reportedIssueKeys.has(issueKey)) {
+            this._showToast('この項目はすでに報告済みです', 'fa-circle-info');
+            return;
+        }
+
+        const issue = {
+            key: issueKey,
+            target: button.dataset.issueTarget || '',
+            replacement: button.dataset.issueReplacement || '',
+            reason: button.dataset.issueReason || ''
+        };
+        const updated = this._recordFalsePositiveFeedback(issue);
+        this._reportedIssueKeys.add(issueKey);
+        if (updated?.count > 0) {
+            button.textContent = `誤検知を報告済み (${updated.count})`;
+        } else {
+            button.textContent = '誤検知を報告済み';
+        }
+        this._showToast('誤検知フィードバックを保存しました', 'fa-flag');
+    }
+
+    _recordFalsePositiveFeedback(issue) {
+        if (!issue || typeof issue.key !== 'string' || !issue.key) return null;
+        let updated = null;
+        if (typeof this.storageManager?.incrementFalsePositiveFeedback === 'function') {
+            updated = this.storageManager.incrementFalsePositiveFeedback(issue.key, {
+                target: issue.target || '',
+                replacement: issue.replacement || '',
+                reason: issue.reason || ''
+            });
+            this._falsePositiveFeedback = this.storageManager.loadFalsePositiveFeedback?.() || this._falsePositiveFeedback;
+        } else {
+            const prev = this._falsePositiveFeedback[issue.key] || { count: 0 };
+            updated = {
+                count: (prev.count || 0) + 1,
+                target: issue.target || '',
+                replacement: issue.replacement || '',
+                reason: issue.reason || '',
+                lastReportedAt: new Date().toISOString()
+            };
+            this._falsePositiveFeedback[issue.key] = updated;
+            this.storageManager?.saveFalsePositiveFeedback?.(this._falsePositiveFeedback);
+        }
+
+        this._track('false_positive_reported', {
+            issue_key: issue.key.slice(0, 80),
+            target: (issue.target || '').slice(0, 80),
+            replacement: (issue.replacement || '').slice(0, 80),
+            count: updated?.count || 1
+        });
+        return updated;
+    }
+
+    _shouldUseWorkerForText(text) {
+        const threshold = Number.isFinite(this.WORKER_THRESHOLD) ? this.WORKER_THRESHOLD : 3000;
+        return typeof text === 'string'
+            && text.length >= threshold
+            && typeof Worker !== 'undefined';
+    }
+
+    async _tokenizeForAnalysis(text) {
+        if (!this._shouldUseWorkerForText(text)) {
+            this._analysisTokensSource = 'sync';
+            return this.ruleEngine.tokenize(text);
+        }
+        try {
+            const tokens = await this._analyzeTokensInWorker(text);
+            this._analysisTokensSource = 'worker';
+            return tokens;
+        } catch {
+            this._analysisTokensSource = 'sync_fallback';
+            return this.ruleEngine.tokenize(text);
+        }
+    }
+
+    _ensureTokenizeWorker() {
+        if (this._tokenizeWorker) return this._tokenizeWorker;
+        if (typeof Worker === 'undefined') return null;
+        try {
+            const workerUrl = new URL('./tokenizeWorker.js', import.meta.url);
+            this._tokenizeWorker = new Worker(workerUrl, { type: 'module' });
+            this._tokenizeWorker.addEventListener('message', (event) => {
+                const { requestId, tokens, error } = event.data || {};
+                if (!Number.isInteger(requestId)) return;
+                const pending = this._workerPending.get(requestId);
+                if (!pending) return;
+                clearTimeout(pending.timeoutId);
+                this._workerPending.delete(requestId);
+                if (Array.isArray(tokens)) {
+                    pending.resolve(tokens);
+                    return;
+                }
+                pending.reject(new Error(error || 'worker_response_invalid'));
+            });
+            this._tokenizeWorker.addEventListener('error', () => {
+                this._disposeTokenizeWorker();
+            });
+        } catch {
+            this._tokenizeWorker = null;
+        }
+        return this._tokenizeWorker;
+    }
+
+    _analyzeTokensInWorker(text) {
+        return new Promise((resolve, reject) => {
+            const worker = this._ensureTokenizeWorker();
+            if (!worker) {
+                reject(new Error('worker_unavailable'));
+                return;
+            }
+            const requestId = ++this._workerRequestSeq;
+            const timeoutId = setTimeout(() => {
+                this._workerPending.delete(requestId);
+                this._disposeTokenizeWorker();
+                reject(new Error('worker_timeout'));
+            }, 2500);
+            this._workerPending.set(requestId, { resolve, reject, timeoutId });
+
+            try {
+                worker.postMessage({
+                    requestId,
+                    text,
+                    rules: this.rules,
+                    removeAsterisks: this.removeAsterisks
+                });
+            } catch (error) {
+                clearTimeout(timeoutId);
+                this._workerPending.delete(requestId);
+                reject(error);
+            }
+        });
+    }
+
+    _disposeTokenizeWorker() {
+        for (const pending of this._workerPending.values()) {
+            clearTimeout(pending.timeoutId);
+            pending.reject(new Error('worker_disposed'));
+        }
+        this._workerPending.clear();
+        if (this._tokenizeWorker) {
+            this._tokenizeWorker.terminate();
+            this._tokenizeWorker = null;
+        }
     }
 
     _track(eventName, params = {}) {
