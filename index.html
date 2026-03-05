@@ -29,7 +29,7 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="レギュレーション・チェッカー">
     <meta name="twitter:description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。">
-    <link rel="stylesheet" href="style.css?v=20260305f">
+    <link rel="stylesheet" href="style.css?v=20260306c">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet"
@@ -57,8 +57,8 @@
         </div>
         <div class="header-right">
             <div class="rule-selector-container">
-                <label for="ruleSetSelector">ルールセット</label>
-                <select id="ruleSetSelector">
+                <label for="ruleSetSelector" class="rule-selector-label">ルールセット</label>
+                <select id="ruleSetSelector" aria-label="ルールセット">
                     <option value="default">デフォルト (汎用)</option>
                 </select>
                 <button id="headerSampleBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-flask"></i> サンプルを生成</button>
