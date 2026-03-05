@@ -19,7 +19,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run unit tests
         run: npm test
@@ -29,4 +29,3 @@ jobs:
 
       - name: Build minified css
         run: npm run build:css
-
