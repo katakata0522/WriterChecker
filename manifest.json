@@ -1,0 +1,23 @@
+{
+    "name": "レギュレーション・チェッカー",
+    "short_name": "Writer Checker",
+    "description": "文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。",
+    "start_url": "./",
+    "display": "standalone",
+    "background_color": "#f8fafc",
+    "theme_color": "#4f46e5",
+    "orientation": "any",
+    "lang": "ja",
+    "categories": [
+        "productivity",
+        "utilities"
+    ],
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

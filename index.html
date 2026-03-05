@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>レギュレーション・チェッカー | かたかたラボ</title>
+    <meta name="description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。無料で使えるライター向け校正ツール。">
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+    <link rel="manifest" href="manifest.json">
+    <!-- OGP -->
+    <meta property="og:title" content="レギュレーション・チェッカー">
+    <meta property="og:description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ja_JP">
+    <meta name="twitter:card" content="summary">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet"
+        media="print" onload="this.media='all'">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 構造化データ -->
+    <script type="application/ld+json">{
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "レギュレーション・チェッカー",
+        "description": "文章の表記ユレやAI装飾をカスタムルールで一括チェック＆修正する無料ツール",
+        "applicationCategory": "UtilityApplication",
+        "operatingSystem": "All",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" }
+    }</script>
+</head>
+
+<body>
+    <header class="app-header">
+        <div class="header-left">
+            <h1><i class="fa-solid fa-check-double"></i> Writer Checker</h1>
+            <span class="badge">PRO</span>
+        </div>
+        <div class="header-right">
+            <div class="rule-selector-container">
+                <label for="ruleSetSelector">ルール名:</label>
+                <select id="ruleSetSelector">
+                    <option value="default">デフォルト (汎用)</option>
+                </select>
+                <span id="presetTooltip" class="preset-tooltip"></span>
+                <button id="addRuleSetBtn" class="btn btn-icon btn-sm" title="ルールの新規作成"><i
+                        class="fa-solid fa-plus"></i></button>
+                <button id="deleteRuleSetBtn" class="btn btn-icon btn-sm btn-danger-icon" title="現在選択中のルールを削除"><i
+                        class="fa-solid fa-trash"></i></button>
+                <button id="editRulesBtn" class="btn btn-icon" title="ルールの編集"><i class="fa-solid fa-gear"></i></button>
+            </div>
+            <button id="replaceBtn" class="btn btn-primary"><i class="fa-solid fa-wand-magic-sparkles"></i>
+                一括修正する</button>
+            <a href="guide.html" class="btn btn-sm btn-ghost" title="使い方ガイド"><i
+                    class="fa-solid fa-circle-question"></i></a>
+        </div>
+    </header>
+
+    <main class="app-main">
+        <section class="editor-pane">
+            <div class="pane-header">
+                <h2><i class="fa-solid fa-pen-nib"></i> 元テキスト</h2>
+                <div class="pane-actions">
+                    <button id="undoBtn" class="btn btn-sm btn-ghost" style="display:none;" title="Ctrl+Z"><i
+                            class="fa-solid fa-rotate-left"></i> 元に戻す</button>
+                    <button id="clearBtn" class="btn btn-sm btn-ghost">クリア</button>
+                    <button id="pasteBtn" class="btn btn-sm btn-ghost">貼り付け</button>
+                </div>
+            </div>
+            <textarea id="sourceText"
+                placeholder="ここに文章を貼り付けてください...&#10;テキストファイルをドラッグ＆ドロップでもOK！&#10;&#10;例：&#10;このサービスはＷＥＢ上で出来ます。&#10;※AIが出力した**強調**テキストも一発で消去！"></textarea>
+            <div class="status-bar">
+                <span id="charCount">文字数: 0</span>
+                <span class="status-divider">|</span>
+                <span id="charCountNoSpace">空白なし: 0</span>
+                <span class="status-divider">|</span>
+                <span id="lineCount">行数: 0</span>
+                <span class="status-divider">|</span>
+                <span id="manuscriptCount">原稿用紙: 0枚</span>
+                <span class="status-divider">|</span>
+                <span id="readTime">読了: 0分</span>
+                <span class="status-divider">|</span>
+                <span id="kanjiRate">漢字率: 0%</span>
+                <div id="kanjiBar" class="kanji-bar">
+                    <div id="kanjiBarFill" class="kanji-bar-fill"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="preview-pane">
+            <div class="pane-header">
+                <h2><i class="fa-solid fa-magnifying-glass"></i> チェック結果 <span id="matchCount"
+                        class="badge-count">0</span></h2>
+                <div class="pane-actions">
+                    <button id="exportReportBtn" class="btn btn-sm btn-ghost" title="チェック結果をテキストで保存"><i
+                            class="fa-solid fa-file-export"></i> レポート</button>
+                    <button id="copyBtn" class="btn btn-sm btn-ghost" title="修正後のテキストをコピー">修正済みをコピー</button>
+                </div>
+            </div>
+            <div id="resultOutput" class="result-content">
+                <div class="placeholder-text">テキストを入力すると、レギュレーション違反がハイライトされます。</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Rule Editor Modal -->
+    <div id="ruleModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-sliders"></i> ルールセット設定</h2>
+                <button id="closeModalBtn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-group">
+                    <h3>AIテキスト成形</h3>
+                    <label class="toggle-control">
+                        <input type="checkbox" id="removeAsterisks" checked>
+                        <span class="control"></span>
+                        <span class="label-text">**（アスタリスク等）の装飾を削除する</span>
+                    </label>
+                    <label class="toggle-control">
+                        <input type="checkbox" id="highlightOnly">
+                        <span class="control"></span>
+                        <span class="label-text">指摘のみモード（クリック修正を無効化）</span>
+                    </label>
+                </div>
+
+                <div class="settings-group">
+                    <div class="group-header">
+                        <h3>置換ルール</h3>
+                        <div class="group-header-actions">
+                            <input type="text" id="ruleSearchInput" class="rule-search-input" placeholder="ルールを検索...">
+                            <button id="regexTemplateBtn" class="btn btn-sm btn-ghost" title="正規表現テンプレートから追加"><i
+                                    class="fa-solid fa-code"></i> テンプレート</button>
+                            <button id="addRuleBtn" class="btn btn-sm btn-outline"><i class="fa-solid fa-plus"></i>
+                                追加</button>
+                        </div>
+                    </div>
+                    <div class="rules-list" id="rulesList">
+                        <!-- Rules injected here by JS -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer modal-footer--split">
+                <div class="modal-footer-left">
+                    <button id="exportRulesBtn" class="btn btn-sm btn-outline" title="ルールをJSONファイルとしてダウンロード"><i
+                            class="fa-solid fa-download"></i> エクスポート</button>
+                    <button id="importRulesBtn" class="btn btn-sm btn-outline" title="JSONファイルからルールを読み込む"><i
+                            class="fa-solid fa-file-import"></i> インポート</button>
+                    <button id="shareRulesBtn" class="btn btn-sm btn-outline" title="現在のルールセットの共有リンクをコピー"><i
+                            class="fa-solid fa-link"></i> 共有</button>
+                    <input type="file" id="importFileInput" accept=".json" style="display: none;">
+                </div>
+                <button id="saveRulesBtn" class="btn btn-primary">設定を保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ルールセット名入力モーダル -->
+    <div id="nameModal" class="modal hidden">
+        <div class="modal-content modal-content-sm">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-folder-plus"></i> 新規ルールセット</h2>
+                <button id="closeNameModalBtn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <label for="newRuleSetName" class="input-label">ルールセット名</label>
+                <input type="text" id="newRuleSetName" class="input-field" placeholder="例: ブログ用、ビジネスメール用">
+                <p id="nameModalError" class="input-error hidden"></p>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmNameBtn" class="btn btn-primary">作成する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 削除確認モーダル -->
+    <div id="confirmModal" class="modal hidden">
+        <div class="modal-content modal-content-sm">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-triangle-exclamation"></i> 確認</h2>
+                <button id="closeConfirmModalBtn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMsg" class="confirm-msg"></p>
+            </div>
+            <div class="modal-footer modal-footer--compact">
+                <button id="confirmModalCancelBtn" class="btn btn-sm btn-ghost">キャンセル</button>
+                <button id="confirmModalOkBtn" class="btn btn-sm btn-primary btn-danger">削除する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">コピーしました！</div>
+
+    <!-- ブックマークレット -->
+    <footer class="app-footer">
+        <details>
+            <summary class="bookmarklet-summary"><i class="fa-solid fa-bookmark"></i> WordPress / note 連携ブックマークレット
+            </summary>
+            <div class="bookmarklet-body">
+                <a class="bookmarklet-link"
+                    href="javascript:void(function(){var t=document.querySelector('textarea,div[contenteditable=true],.ProseMirror,.ql-editor,[role=textbox]');if(!t){alert('\u30c6\u30ad\u30b9\u30c8\u30a8\u30ea\u30a2\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093');return;}var txt=t.innerText||t.value||'';if(!txt){alert('\u30c6\u30ad\u30b9\u30c8\u304c\u7a7a\u3067\u3059');return;}var w=window.open(location.origin+location.pathname,'WriterChecker');setTimeout(function(){w.postMessage({type:'writerChecker',text:txt},'*');},1500);}())">✅
+                    Writer Checkerでチェック</a>
+                <div class="bookmarklet-instructions">
+                    <p><strong>使い方：</strong></p>
+                    <ol class="bookmarklet-steps">
+                        <li>↑のボタンを<strong>ブックマークバーにドラッグ</strong>してください</li>
+                        <li>WordPressやnoteの<strong>編集画面</strong>を開きます</li>
+                        <li>ブックマークバーの<strong>「Writer Checkerでチェック」をクリック</strong></li>
+                        <li>テキストが自動でWriter Checkerに送られます！</li>
+                    </ol>
+                </div>
+            </div>
+        </details>
+    </footer>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

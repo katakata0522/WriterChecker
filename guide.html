@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Writer Checker 使い方ガイド</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --bg: #f8fafc;
+            --surface: #fff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.8;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            margin: 2rem 0 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .step {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.75rem;
+            height: 1.75rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+        }
+
+        .step h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .step p {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .tip {
+            background: #eef2ff;
+            border-left: 4px solid var(--primary);
+            padding: 0.75rem 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .tip strong {
+            color: var(--primary);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .feature-card strong {
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .shortcut {
+            display: inline-block;
+            background: var(--border);
+            padding: 0.15rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 2rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>✅ Writer Checker 使い方ガイド</h1>
+    <p class="subtitle">文章の表記ゆれからAIの装飾記号まで、カスタムルールで一括チェック＆修正。</p>
+
+    <h2>🚀 基本の使い方</h2>
+
+    <div class="step">
+        <h3><span class="step-number">1</span>テキストを入力</h3>
+        <p>左の「元テキスト」エリアに文章を貼り付けるか、直接入力してください。ファイルをドラッグ＆ドロップすることもできます。</p>
+    </div>
+
+    <div class="step">
+        <h3><span class="step-number">2</span>チェック結果を確認</h3>
+        <p>右の「チェック結果」にルールに基づいた指摘がハイライトで表示されます。ハイライトにマウスを乗せると修正候補が表示されます。</p>
+    </div>
+
+    <div class="step">
+        <h3><span class="step-number">3</span>修正する</h3>
+        <p>個別にクリックして1つずつ修正するか、「一括修正する」ボタンで全て修正できます。間違えたら「元に戻す」で戻せます。</p>
+    </div>
+
+    <div class="tip">
+        <strong>💡 ヒント:</strong> ステータスバーの漢字率インジケーターが緑色(20〜30%)なら読みやすい文章です。
+    </div>
+
+    <h2>📋 ルールセット</h2>
+    <p>目的に合わせてプリセットを選択できます。</p>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <strong>デフォルト（汎用）</strong>
+            漢字→ひらがな、カタカナ長音統一の基本ルール20件
+        </div>
+        <div class="feature-card">
+            <strong>ブログ・ライター用</strong>
+            副詞・敬語・接続詞の表記ゆれを網羅した25件
+        </div>
+        <div class="feature-card">
+            <strong>ビジネスメール用</strong>
+            敬語の誤用や口語表現を丁寧表現に置換する10件
+        </div>
+        <div class="feature-card">
+            <strong>AI出力クリーン</strong>
+            ChatGPT等のMarkdown装飾を一括除去する8件
+        </div>
+    </div>
+
+    <div class="tip">
+        <strong>💡 カスタムルール:</strong> ⚙ボタンからルールを自由に追加・編集できます。正規表現(.*ボタン)やメモフィールドも使えます。
+    </div>
+
+    <h2>⌨️ キーボードショートカット</h2>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <strong><span class="shortcut">Ctrl + Enter</span></strong> 一括修正
+        </div>
+        <div class="feature-card">
+            <strong><span class="shortcut">Ctrl + Shift + C</span></strong> 修正済みテキストをコピー
+        </div>
+        <div class="feature-card">
+            <strong><span class="shortcut">Escape</span></strong> モーダルを閉じる
+        </div>
+    </div>
+
+    <h2>🔗 共有・連携</h2>
+    <ul style="padding-left:1.5rem; margin-top:0.5rem;">
+        <li><strong>ルールセット共有:</strong> 共有ボタンでURLを生成し、チームで同じルールを使えます</li>
+        <li><strong>エクスポート/インポート:</strong> ルールをJSONファイルで保存・復元できます</li>
+        <li><strong>ブックマークレット:</strong> WordPress/noteの編集画面から直接テキストを送れます</li>
+        <li><strong>レポート出力:</strong> チェック結果をテキストファイルでダウンロードできます</li>
+    </ul>
+
+    <a href="./" class="back-link">← Writer Checkerに戻る</a>
+</body>
+
+</html>

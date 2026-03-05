@@ -1,0 +1,10 @@
+{
+    "name": "writer-checker",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "レギュレーション・チェッカー — 文章の表記ユレやAI装飾をカスタムルールで一括チェック＆修正",
+    "private": true,
+    "scripts": {
+        "test": "node --test tests/"
+    }
+}
