@@ -3,7 +3,7 @@
  * Cache-first for local, stale-while-revalidate for external.
  */
 
-const CACHE_NAME = 'writer-checker-v1.2.0';
+const CACHE_NAME = 'writer-checker-v1.3.0';
 const ASSETS = [
     './',
     './index.html',
