@@ -42,24 +42,81 @@
             <span class="badge">PRO</span>
         </div>
         <div class="header-right">
-            <div class="rule-selector-container">
-                <label for="ruleSetSelector">ルール名:</label>
-                <select id="ruleSetSelector">
-                    <option value="default">デフォルト (汎用)</option>
-                </select>
-                <span id="presetTooltip" class="preset-tooltip"></span>
-                <button id="addRuleSetBtn" class="btn btn-icon btn-sm" title="ルールの新規作成"><i
-                        class="fa-solid fa-plus"></i></button>
-                <button id="deleteRuleSetBtn" class="btn btn-icon btn-sm btn-danger-icon" title="現在選択中のルールを削除"><i
-                        class="fa-solid fa-trash"></i></button>
-                <button id="editRulesBtn" class="btn btn-icon" title="ルールの編集"><i class="fa-solid fa-gear"></i></button>
-            </div>
+            <select id="ruleSetSelector">
+                <option value="default">デフォルト (汎用)</option>
+            </select>
             <button id="replaceBtn" class="btn btn-primary"><i class="fa-solid fa-wand-magic-sparkles"></i>
                 一括修正する</button>
-            <a href="guide.html" class="btn btn-sm btn-ghost" title="使い方ガイド"><i
-                    class="fa-solid fa-circle-question"></i></a>
+            <button id="sidePanelToggle" class="btn btn-icon" title="設定・ルール管理"><i class="fa-solid fa-bars"></i></button>
         </div>
     </header>
+
+    <!-- サイドパネル（右スライドイン） -->
+    <div id="sidePanelOverlay" class="side-panel-overlay hidden"></div>
+    <aside id="sidePanel" class="side-panel hidden">
+        <div class="side-panel-header">
+            <h2><i class="fa-solid fa-sliders"></i> 設定</h2>
+            <button id="sidePanelClose" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="side-panel-body">
+            <!-- ルールセット管理 -->
+            <div class="side-panel-section">
+                <h3>ルールセット</h3>
+                <div class="side-panel-actions">
+                    <button id="addRuleSetBtn" class="btn btn-sm btn-outline" title="ルールの新規作成"><i
+                            class="fa-solid fa-plus"></i> 新規作成</button>
+                    <button id="deleteRuleSetBtn" class="btn btn-sm btn-ghost btn-danger-icon" title="現在選択中のルールを削除"><i
+                            class="fa-solid fa-trash"></i> 削除</button>
+                </div>
+            </div>
+
+            <!-- ルールのオンオフ -->
+            <div class="side-panel-section">
+                <h3>ルール一覧 <span id="ruleToggleCount" class="badge-count">0/0</span></h3>
+                <div id="ruleToggleList" class="rule-toggle-list">
+                    <!-- JSで描画 -->
+                </div>
+            </div>
+
+            <!-- 設定トグル -->
+            <div class="side-panel-section">
+                <h3>オプション</h3>
+                <label class="toggle-control">
+                    <input type="checkbox" id="removeAsterisks" checked>
+                    <span class="control"></span>
+                    <span class="label-text">アスタリスク装飾を削除</span>
+                </label>
+                <label class="toggle-control">
+                    <input type="checkbox" id="highlightOnly">
+                    <span class="control"></span>
+                    <span class="label-text">指摘のみモード</span>
+                </label>
+            </div>
+
+            <!-- アクションボタン -->
+            <div class="side-panel-section">
+                <h3>データ管理</h3>
+                <div class="side-panel-actions">
+                    <button id="exportRulesBtn" class="btn btn-sm btn-ghost"><i class="fa-solid fa-file-export"></i>
+                        エクスポート</button>
+                    <button id="importRulesBtn" class="btn btn-sm btn-ghost"><i class="fa-solid fa-file-import"></i>
+                        インポート</button>
+                    <button id="shareRulesBtn" class="btn btn-sm btn-ghost"><i class="fa-solid fa-link"></i>
+                        共有リンク</button>
+                </div>
+                <input type="file" id="importFileInput" accept=".json" class="hidden">
+            </div>
+
+            <!-- 詳細設定リンク -->
+            <div class="side-panel-section">
+                <button id="editRulesBtn" class="btn btn-primary btn-block"><i class="fa-solid fa-gear"></i>
+                    ルールを編集する</button>
+                <a href="guide.html" class="btn btn-sm btn-ghost btn-block" style="margin-top:0.5rem;"><i
+                        class="fa-solid fa-circle-question"></i> 使い方ガイド</a>
+            </div>
+        </div>
+    </aside>
 
     <main class="app-main">
         <section class="editor-pane">
@@ -116,19 +173,6 @@
                 <button id="closeModalBtn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
-                <div class="settings-group">
-                    <h3>AIテキスト成形</h3>
-                    <label class="toggle-control">
-                        <input type="checkbox" id="removeAsterisks" checked>
-                        <span class="control"></span>
-                        <span class="label-text">**（アスタリスク等）の装飾を削除する</span>
-                    </label>
-                    <label class="toggle-control">
-                        <input type="checkbox" id="highlightOnly">
-                        <span class="control"></span>
-                        <span class="label-text">指摘のみモード（クリック修正を無効化）</span>
-                    </label>
-                </div>
 
                 <div class="settings-group">
                     <div class="group-header">

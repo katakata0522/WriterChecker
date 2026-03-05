@@ -33,6 +33,7 @@ export class UIManager {
         this.populateRuleSetSelector();
         this.removeAsterisksCheckbox.checked = this.removeAsterisks;
         this.renderRulesList();
+        this.renderRuleToggleList();
     }
 
     // =========================================================================
@@ -98,6 +99,14 @@ export class UIManager {
         this.confirmModalOkBtn = document.getElementById('confirmModalOkBtn');
         this.exportReportBtn = document.getElementById('exportReportBtn'); // F-14
         this.regexTemplateBtn = document.getElementById('regexTemplateBtn'); // F-08
+
+        // サイドパネル
+        this.sidePanel = document.getElementById('sidePanel');
+        this.sidePanelOverlay = document.getElementById('sidePanelOverlay');
+        this.sidePanelToggle = document.getElementById('sidePanelToggle');
+        this.sidePanelClose = document.getElementById('sidePanelClose');
+        this.ruleToggleList = document.getElementById('ruleToggleList');
+        this.ruleToggleCount = document.getElementById('ruleToggleCount');
     }
 
     // =========================================================================
@@ -111,6 +120,7 @@ export class UIManager {
         this._bindKeyboardEvents();
         this._bindDragDropEvents();
         this._bindExternalEvents();
+        this._bindSidePanelEvents();
     }
 
     /** ルールセットの選択・作成・削除 */
@@ -122,6 +132,7 @@ export class UIManager {
             this.storageManager.saveActiveSetName(this.activeSetName);
             this._updatePresetTooltip(); // F-02
             this._applyPresetAsterisk(); // F-07
+            this.renderRuleToggleList(); // サイドパネル更新
             this.analyzeText();
         });
 
@@ -245,6 +256,7 @@ export class UIManager {
             this.removeAsterisksCheckbox.checked = this.removeAsterisks;
             this.highlightOnlyCheckbox.checked = this.highlightOnly; // F-13
             if (this.ruleSearchInput) this.ruleSearchInput.value = ''; // F-04
+            this._closeSidePanel(); // サイドパネルを閉じてからモーダルを開く
             this.ruleModal.classList.remove('hidden');
         });
 
@@ -264,6 +276,7 @@ export class UIManager {
         this.saveRulesBtn.addEventListener('click', () => {
             this._saveRulesFromUI();
             this.ruleModal.classList.add('hidden');
+            this.renderRuleToggleList(); // サイドパネル同期
             this.analyzeText();
             this._showToast('ルールを保存しました');
         });
@@ -1066,5 +1079,99 @@ export class UIManager {
         a.click();
         URL.revokeObjectURL(url);
         this._showToast('レポートをダウンロードしました');
+    }
+
+    // =========================================================================
+    //  サイドパネル
+    // =========================================================================
+
+    _bindSidePanelEvents() {
+        // 開閉
+        this.sidePanelToggle.addEventListener('click', () => this._openSidePanel());
+        this.sidePanelClose.addEventListener('click', () => this._closeSidePanel());
+        this.sidePanelOverlay.addEventListener('click', () => this._closeSidePanel());
+
+        // オプショントグルの即時反映
+        this.removeAsterisksCheckbox.addEventListener('change', () => {
+            this.removeAsterisks = this.removeAsterisksCheckbox.checked;
+            this.ruleEngine.setRemoveAsterisks(this.removeAsterisks);
+            this.storageManager.saveAsteriskSetting(this.removeAsterisks);
+            this.analyzeText();
+        });
+
+        this.highlightOnlyCheckbox.addEventListener('change', () => {
+            this.highlightOnly = this.highlightOnlyCheckbox.checked;
+        });
+    }
+
+    _openSidePanel() {
+        this.renderRuleToggleList();
+        this.removeAsterisksCheckbox.checked = this.removeAsterisks;
+        this.highlightOnlyCheckbox.checked = this.highlightOnly;
+        this.sidePanel.classList.remove('hidden');
+        this.sidePanelOverlay.classList.remove('hidden');
+    }
+
+    _closeSidePanel() {
+        this.sidePanel.classList.add('hidden');
+        this.sidePanelOverlay.classList.add('hidden');
+    }
+
+    /**
+     * サイドパネルにルール一覧をチェックボックス付きで描画。
+     * オンオフ切替は即時反映（RuleEngine更新＋解析実行＋保存）。
+     */
+    renderRuleToggleList() {
+        if (!this.ruleToggleList) return;
+        this.ruleToggleList.innerHTML = '';
+
+        const enabledCount = this.rules.filter(r => r.enabled !== false).length;
+        if (this.ruleToggleCount) {
+            this.ruleToggleCount.textContent = `${enabledCount}/${this.rules.length}`;
+        }
+
+        this.rules.forEach((rule, index) => {
+            const item = document.createElement('label');
+            item.className = `rule-toggle-item${rule.enabled === false ? ' disabled' : ''}`;
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = rule.enabled !== false;
+            checkbox.addEventListener('change', () => {
+                rule.enabled = checkbox.checked;
+                item.classList.toggle('disabled', !checkbox.checked);
+
+                // カウント更新
+                const count = this.rules.filter(r => r.enabled !== false).length;
+                if (this.ruleToggleCount) {
+                    this.ruleToggleCount.textContent = `${count}/${this.rules.length}`;
+                }
+
+                // 即時反映
+                this.ruleEngine.setRules(this.rules);
+                this.allRuleSets[this.activeSetName] = this.rules;
+                this.storageManager.saveAllRuleSets(this.allRuleSets);
+                this.analyzeText();
+            });
+
+            const preview = document.createElement('span');
+            preview.className = 'rule-preview';
+
+            const from = document.createElement('span');
+            from.className = 'from';
+            from.textContent = rule.target;
+
+            const arrow = document.createElement('span');
+            arrow.className = 'arrow';
+            arrow.textContent = '→';
+
+            const to = document.createElement('span');
+            to.className = 'to';
+            to.textContent = rule.replacement || '（削除）';
+
+            preview.append(from, arrow, to);
+            item.append(checkbox, preview);
+            this.ruleToggleList.appendChild(item);
+        });
     }
 }
