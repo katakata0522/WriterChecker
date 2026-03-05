@@ -1164,3 +1164,29 @@ textarea {
     background: var(--bg-color);
     color: var(--primary-color);
 }
+
+/* フッターリンク */
+.legal-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.5rem 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.legal-footer a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.legal-footer a:hover {
+    color: var(--primary-color);
+}
+
+.legal-divider {
+    color: var(--border-color);
+    font-size: 0.7rem;
+}
