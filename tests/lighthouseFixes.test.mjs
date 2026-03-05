@@ -33,4 +33,10 @@ describe('Lighthouse fixes guard', () => {
         const html = fs.readFileSync(indexPath, 'utf-8');
         assert.match(html, /"@type":\s*"FAQPage"/);
     });
+
+    it('GA4測定IDが設定されている', () => {
+        const html = fs.readFileSync(indexPath, 'utf-8');
+        assert.match(html, /G-FYFPS7L9X9/);
+        assert.match(html, /googletagmanager\.com\/gtag\/js\?id=/);
+    });
 });

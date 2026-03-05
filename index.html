@@ -35,6 +35,26 @@
     <meta name="twitter:title" content="レギュレーション・チェッカー">
     <meta name="twitter:description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。">
     <meta name="twitter:image" content="https://katakatalab.com/writer-checker/icons/pwa-512.png">
+    <!-- Analytics (GA4) -->
+    <script>
+        (function initWriterCheckerAnalytics() {
+            var GA_ID = 'G-FYFPS7L9X9';
+            var dnt = (navigator.doNotTrack === '1' || window.doNotTrack === '1' || navigator.msDoNotTrack === '1');
+            if (dnt) return;
+
+            var script = document.createElement('script');
+            script.async = true;
+            script.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+            document.head.appendChild(script);
+
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = window.gtag || function gtag() { dataLayer.push(arguments); };
+            window.gtag('js', new Date());
+            window.gtag('config', GA_ID, {
+                anonymize_ip: true
+            });
+        })();
+    </script>
     <link rel="stylesheet" href="style.min.css?v=20260306f">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
