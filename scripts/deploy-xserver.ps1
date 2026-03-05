@@ -35,6 +35,7 @@ $dirs = @(
     "guide",
     "privacy",
     "terms",
+    "icons",
     "js",
     "vendor",
     "tests",

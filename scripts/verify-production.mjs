@@ -46,6 +46,9 @@ async function main() {
         [toAbsolute('js/PWAManager.js'), 'application/javascript'],
         [toAbsolute('manifest.json'), null],
         [toAbsolute('sw.js'), null],
+        [toAbsolute('icons/pwa-192.png'), 'image/png'],
+        [toAbsolute('icons/pwa-512.png'), 'image/png'],
+        [toAbsolute('icons/apple-touch-icon.png'), 'image/png'],
         [toAbsolute('robots.txt'), 'text/plain'],
         [toAbsolute('sitemap.xml'), 'text/xml']
     ];
