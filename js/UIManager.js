@@ -27,6 +27,11 @@ export class UIManager {
         this.highlightOnly = false; // F-13: 指摘のみモード
         this.MAX_SHARE_URL_LENGTH = 2000;
         this.MAX_INCOMING_TEXT_LENGTH = 200000;
+        this._guideProgress = {
+            sample: false,
+            replace: false,
+            diff: false
+        };
 
         this._cacheElements();
         this._bindEvents();
@@ -36,6 +41,8 @@ export class UIManager {
         this.removeAsterisksCheckbox.checked = this.removeAsterisks;
         this.renderRulesList();
         this.renderRuleToggleList();
+        this._updateSaveStateStatus();
+        this._updateGuideProgressUI();
     }
 
     // =========================================================================
@@ -54,6 +61,17 @@ export class UIManager {
         this.undoBtn = document.getElementById('undoBtn');
         this.sampleBtn = document.getElementById('sampleBtn');
         this.bookmarkletLink = document.getElementById('bookmarkletLink');
+        this.activeRuleSetStatus = document.getElementById('activeRuleSetStatus');
+        this.saveStateStatus = document.getElementById('saveStateStatus');
+        this.matchCountStatus = document.getElementById('matchCountStatus');
+        this.guideStepSample = document.getElementById('guideStepSample');
+        this.guideStepReplace = document.getElementById('guideStepReplace');
+        this.guideStepDiff = document.getElementById('guideStepDiff');
+        this.guideSampleBtn = document.getElementById('guideSampleBtn');
+        this.mobileSampleBtn = document.getElementById('mobileSampleBtn');
+        this.mobileReplaceBtn = document.getElementById('mobileReplaceBtn');
+        this.mobileCopyBtn = document.getElementById('mobileCopyBtn');
+        this.mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
 
         // ルールセットセレクタ
         this.ruleSetSelector = document.getElementById('ruleSetSelector');
@@ -139,6 +157,7 @@ export class UIManager {
         this._bindExternalEvents();
         this._bindSidePanelEvents();
         this._bindContextMenu(); // B-4
+        this._bindQuickActionEvents();
     }
 
     /** ルールセットの選択・作成・削除 */
@@ -159,7 +178,7 @@ export class UIManager {
             if (this._hasUnsavedEdits) {
                 this._showConfirm(
                     '編集中のルールがあります。保存せずにルールセットを切り替えますか？',
-                    () => { this._hasUnsavedEdits = false; doSwitch(); },
+                    () => { this._hasUnsavedEdits = false; this._updateSaveStateStatus(); doSwitch(); },
                     { okText: '切り替える' }
                 );
                 this.ruleSetSelector.value = this.activeSetName;
@@ -368,10 +387,7 @@ export class UIManager {
         // A-2: サンプルテキスト挿入
         if (this.sampleBtn) {
             this.sampleBtn.addEventListener('click', () => {
-                const sample = `お世話になっております。\n\n本日は先日の打ち合わせの件についてご連絡致します。\n以下の内容を確認して頂ければ幸いです。\n\n全ての資料を添付しておりますので、ご確認下さい。\n何卒宜しくお願い致します。\n\n尚、不明な点が御座いましたら、何時でもご連絡下さい。\n了解しましたと返信を頂けますと幸いです。\n\n※この文章には**AI装飾**と表記ゆれが含まれています。`;
-                this._replaceTextareaContent(sample);
-                this.analyzeText();
-                this._showToast('サンプルテキストを挿入しました', 'fa-flask');
+                this._insertSampleText();
             });
         }
 
@@ -406,6 +422,7 @@ export class UIManager {
             }
             const changes = this._generateChangeReport(original, cleaned);
             this._replaceTextareaContent(cleaned);
+            this._setGuideStepDone('replace');
             this.analyzeText();
             this._showDiffView(changes);
             this.undoBtn.style.display = '';
@@ -521,6 +538,24 @@ export class UIManager {
         });
     }
 
+    _bindQuickActionEvents() {
+        if (this.guideSampleBtn && this.sampleBtn) {
+            this.guideSampleBtn.addEventListener('click', () => this.sampleBtn.click());
+        }
+        if (this.mobileSampleBtn && this.sampleBtn) {
+            this.mobileSampleBtn.addEventListener('click', () => this.sampleBtn.click());
+        }
+        if (this.mobileReplaceBtn && this.replaceBtn) {
+            this.mobileReplaceBtn.addEventListener('click', () => this.replaceBtn.click());
+        }
+        if (this.mobileCopyBtn && this.copyBtn) {
+            this.mobileCopyBtn.addEventListener('click', () => this.copyBtn.click());
+        }
+        if (this.mobileSettingsBtn && this.sidePanelToggle) {
+            this.mobileSettingsBtn.addEventListener('click', () => this.sidePanelToggle.click());
+        }
+    }
+
     // =========================================================================
     //  ルールセット管理
     // =========================================================================
@@ -536,6 +571,7 @@ export class UIManager {
         }
         this.deleteRuleSetBtn.disabled = Object.keys(this.allRuleSets).length <= 1;
         this._updatePresetTooltip(); // F-02
+        if (this.activeRuleSetStatus) this.activeRuleSetStatus.textContent = this.activeSetName;
     }
 
     renderRulesList() {
@@ -683,6 +719,7 @@ export class UIManager {
         this.storageManager.saveAllRuleSets(this.allRuleSets);
         this.storageManager.saveAsteriskSetting(this.removeAsterisks);
         this._hasUnsavedEdits = false;
+        this._updateSaveStateStatus();
     }
 
     // =========================================================================
@@ -706,6 +743,7 @@ export class UIManager {
             div.textContent = 'テキストを入力するか貼り付けると、レギュレーション違反がハイライトされます。';
             this.resultOutput.appendChild(div);
             this.matchCountBadge.textContent = '0';
+            if (this.matchCountStatus) this.matchCountStatus.textContent = '0件';
             this._updateBadgeStyle(0);
             return;
         }
@@ -750,6 +788,7 @@ export class UIManager {
 
         this.resultOutput.appendChild(fragment);
         this.matchCountBadge.textContent = matchCount.toString();
+        if (this.matchCountStatus) this.matchCountStatus.textContent = `${matchCount}件`;
         this._updateBadgeStyle(matchCount);
     }
 
@@ -809,12 +848,38 @@ export class UIManager {
         this.matchCountBadge.style.color = 'white';
     }
 
+    _updateSaveStateStatus() {
+        if (!this.saveStateStatus) return;
+        this.saveStateStatus.textContent = this._hasUnsavedEdits ? '未保存' : '保存済み';
+    }
+
+    _setGuideStepDone(stepKey) {
+        if (!Object.hasOwn(this._guideProgress, stepKey)) return;
+        this._guideProgress[stepKey] = true;
+        this._updateGuideProgressUI();
+    }
+
+    _updateGuideProgressUI() {
+        if (this.guideStepSample) this.guideStepSample.classList.toggle('is-done', this._guideProgress.sample);
+        if (this.guideStepReplace) this.guideStepReplace.classList.toggle('is-done', this._guideProgress.replace);
+        if (this.guideStepDiff) this.guideStepDiff.classList.toggle('is-done', this._guideProgress.diff);
+    }
+
+    _insertSampleText() {
+        const sample = `お世話になっております。\n\n本日は先日の打ち合わせの件についてご連絡致します。\n以下の内容を確認して頂ければ幸いです。\n\n全ての資料を添付しておりますので、ご確認下さい。\n何卒宜しくお願い致します。\n\n尚、不明な点が御座いましたら、何時でもご連絡下さい。\n了解しましたと返信を頂けますと幸いです。\n\n※この文章には**AI装飾**と表記ゆれが含まれています。`;
+        this._replaceTextareaContent(sample);
+        this._setGuideStepDone('sample');
+        this.analyzeText();
+        this._showToast('サンプルテキストを挿入しました', 'fa-flask');
+    }
+
     // =========================================================================
     //  ユーティリティ
     // =========================================================================
 
     _markRulesDirty() {
         this._hasUnsavedEdits = true;
+        this._updateSaveStateStatus();
     }
 
     _createRuleSet(name) {
@@ -1455,6 +1520,7 @@ export class UIManager {
 
     _showDiffView(changes) {
         if (changes.length === 0) return;
+        this._setGuideStepDone('diff');
 
         // 既存の差分ビューを削除
         const existing = document.getElementById('diffViewModal');

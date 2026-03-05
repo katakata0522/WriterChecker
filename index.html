@@ -24,7 +24,7 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="レギュレーション・チェッカー">
     <meta name="twitter:description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。">
-    <link rel="stylesheet" href="style.css?v=20260305c">
+    <link rel="stylesheet" href="style.css?v=20260305d">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet"
@@ -64,6 +64,20 @@
                 設定</button>
         </div>
     </header>
+    <section class="top-status-strip" aria-label="現在の状態">
+        <span class="status-chip"><i class="fa-solid fa-layer-group"></i> ルールセット: <strong id="activeRuleSetStatus">-</strong></span>
+        <span class="status-chip"><i class="fa-solid fa-floppy-disk"></i> 保存状態: <strong id="saveStateStatus">保存済み</strong></span>
+        <span class="status-chip"><i class="fa-solid fa-list-check"></i> 検出件数: <strong id="matchCountStatus">0件</strong></span>
+    </section>
+    <section class="quick-guide" aria-label="使い方クイックガイド">
+        <p class="quick-guide-title"><i class="fa-solid fa-route"></i> 最短3ステップ</p>
+        <ol class="quick-guide-steps">
+            <li id="guideStepSample">1. サンプル挿入</li>
+            <li id="guideStepReplace">2. 一括修正</li>
+            <li id="guideStepDiff">3. 差分確認</li>
+        </ol>
+        <button id="guideSampleBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-flask"></i> サンプルで開始</button>
+    </section>
 
     <!-- サイドパネル（右スライドイン） -->
     <div id="sidePanelOverlay" class="side-panel-overlay hidden"></div>
@@ -291,9 +305,15 @@
             </div>
         </details>
     </footer>
+    <nav class="mobile-action-bar" aria-label="モバイルクイック操作">
+        <button id="mobileSampleBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-flask"></i> サンプル</button>
+        <button id="mobileReplaceBtn" class="btn btn-sm btn-primary" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> 修正</button>
+        <button id="mobileCopyBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-copy"></i> コピー</button>
+        <button id="mobileSettingsBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-sliders"></i> 設定</button>
+    </nav>
 
 
-    <script type="module" src="js/app.js?v=20260305c"></script>
+    <script type="module" src="js/app.js?v=20260305d"></script>
 </body>
 
 </html>
