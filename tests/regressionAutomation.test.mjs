@@ -23,6 +23,7 @@ describe('Regression automation guard', () => {
         const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
         assert.ok(pkg.scripts['test:regression']);
         assert.ok(pkg.scripts['qa:gate']);
+        assert.strictEqual(pkg.scripts.test, 'node --test tests/*.test.mjs');
     });
 
     it('依存関係のロックファイルが存在する', () => {
