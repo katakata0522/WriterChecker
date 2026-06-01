@@ -1530,3 +1530,45 @@ textarea {
 .side-panel-legal a:hover {
     color: var(--primary-color);
 }
+
+/* プレミアムルール販売バナー */
+.premium-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, #312e81, #4c1d95);
+    border: 1px solid #6d28d9;
+    text-decoration: none;
+    transition: border-color 0.2s;
+}
+
+.premium-banner:hover {
+    border-color: #a78bfa;
+}
+
+.premium-banner-emoji {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+.premium-banner-title {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #c4b5fd;
+}
+
+.premium-banner-desc {
+    font-size: 0.625rem;
+    color: #9ca3af;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.premium-banner-icon {
+    color: #a78bfa;
+    flex-shrink: 0;
+    font-size: 0.6875rem;
+}

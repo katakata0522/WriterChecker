@@ -817,7 +817,7 @@ export class UIManager {
         const requestId = ++this._analysisRequestSeq;
 
         if (!text) {
-            const placeholderText = 'テキストを入力するか貼り付けると、レギュレーション違反がハイライトされます。';
+            const placeholderText = 'テキストを入力するか貼り付けると、表記ゆれがハイライトされます。';
             if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
                 const div = document.createElement('div');
                 div.className = 'placeholder-text';

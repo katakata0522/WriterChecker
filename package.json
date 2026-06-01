@@ -2,7 +2,7 @@
     "name": "writer-checker",
     "version": "1.0.0",
     "type": "module",
-    "description": "レギュレーション・チェッカー — 文章の表記ユレやAI装飾をカスタムルールで一括チェック＆修正",
+    "description": "表記ゆれチェッカー — 表記ゆれ・誤字脱字・AI装飾をカスタムルールで一括チェック＆修正",
     "private": true,
     "scripts": {
         "build:css": "node scripts/build-css.mjs",
