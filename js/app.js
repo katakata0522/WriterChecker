@@ -7,6 +7,9 @@ import { RuleEngine } from './RuleEngine.js';
 import { UIManager } from './UIManager.js';
 import { initPWA } from './PWAManager.js';
 import { AnalyticsManager } from './AnalyticsManager.js';
+import { applyRuleSchemaV3 } from './RuleSchemaV3Enhancer.js';
+
+applyRuleSchemaV3({ StorageManager, RuleEngine, UIManager });
 
 document.addEventListener('DOMContentLoaded', () => {
     const storageManager = new StorageManager();
