@@ -4,7 +4,7 @@
  * - 静的アセット: stale-while-revalidate
  */
 
-const CACHE_VERSION = '20260805a';
+const CACHE_VERSION = '20260805b';
 const STATIC_CACHE_NAME = `writer-checker-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `writer-checker-runtime-${CACHE_VERSION}`;
 
@@ -23,6 +23,7 @@ const APP_SHELL = [
     './js/RuleEngine.js',
     './js/RuleSchemaV3Enhancer.js',
     './js/RulePolicyV3Enhancer.js',
+    './js/RulePolicyV3Engine.js',
     './js/tokenizeWorker.js',
     './js/AnalyticsManager.js',
     './vendor/fontawesome/css/all.min.css',
