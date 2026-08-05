@@ -8,8 +8,10 @@ import { UIManager } from './UIManager.js';
 import { initPWA } from './PWAManager.js';
 import { AnalyticsManager } from './AnalyticsManager.js';
 import { applyRuleSchemaV3 } from './RuleSchemaV3Enhancer.js';
+import { applyRulePolicyV3 } from './RulePolicyV3Enhancer.js';
 
 applyRuleSchemaV3({ StorageManager, RuleEngine, UIManager });
+applyRulePolicyV3({ RuleEngine, UIManager });
 
 document.addEventListener('DOMContentLoaded', () => {
     const storageManager = new StorageManager();
