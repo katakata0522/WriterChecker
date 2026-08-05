@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Writer Checker Browser Smoke</title>
     <style>
-        html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #f8fafc; }
-        #app { width: 100vw; height: 100vh; border: 0; display: block; }
+        html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #e2e8f0; }
+        body.mobile { display: flex; justify-content: center; align-items: flex-start; }
+        #app { width: 100vw; height: 100vh; border: 0; display: block; background: #f8fafc; }
+        body.mobile #app { width: 390px; height: 844px; max-width: 100vw; }
         #status { position: fixed; top: 8px; right: 8px; z-index: 9999; padding: 6px 10px; border-radius: 999px; background: #334155; color: #fff; font: 700 12px/1.2 sans-serif; box-shadow: 0 2px 8px rgba(15,23,42,.25); }
         html[data-status="pass"] #status { background: #047857; }
         html[data-status="fail"] #status { background: #b91c1c; }
@@ -21,6 +23,7 @@
         const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         const mode = new URLSearchParams(location.search).get('mode') || 'desktop';
         const checks = [];
+        if (mode === 'mobile') document.body.classList.add('mobile');
 
         function verify(name, condition, detail = '') {
             checks.push({ name, pass: Boolean(condition), detail });
@@ -98,14 +101,15 @@
             const viewportWidth = doc.documentElement.clientWidth;
             verify('横スクロールが発生しない', scrollWidth <= viewportWidth + 2, `${scrollWidth}/${viewportWidth}`);
             if (mode === 'mobile') {
-                verify('スマートフォン幅が適用される', mobileLayout);
+                verify('390pxのスマートフォン幅で表示する', viewportWidth === 390, `actual=${viewportWidth}`);
+                verify('スマートフォン用レイアウトが適用される', mobileLayout);
                 verify('モバイル操作バーが表示される', mobileBarVisible);
             } else {
                 verify('デスクトップ幅が適用される', !mobileLayout);
                 verify('モバイル操作バーが非表示', !mobileBarVisible);
             }
 
-            verify('結果件数がライブ通知される', doc.getElementById('matchCount')?.getAttribute('aria-live') === 'polite');
+            verify('結果件数がライブ通知される', doc.getElementById('matchCountStatus')?.getAttribute('aria-live') === 'polite');
             finish('pass');
         }
 
