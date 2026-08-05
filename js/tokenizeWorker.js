@@ -2,8 +2,10 @@ import { RuleEngine } from './RuleEngine.js';
 import { StorageManager } from './StorageManager.js';
 import { UIManager } from './UIManager.js';
 import { applyRuleSchemaV3 } from './RuleSchemaV3Enhancer.js';
+import { applyRulePolicyV3 } from './RulePolicyV3Enhancer.js';
 
 applyRuleSchemaV3({ StorageManager, RuleEngine, UIManager });
+applyRulePolicyV3({ RuleEngine, UIManager });
 
 const engine = new RuleEngine();
 
@@ -15,7 +17,7 @@ self.addEventListener('message', (event) => {
     }
 
     try {
-        // Worker内でも本体と同じV3ルール・除外ロジックを使う
+        // Worker内でも本体と同じV3ルール・除外・自動修正方針を使う
         engine.setRules(rules);
         engine.setRemoveAsterisks(removeAsterisks !== false);
         const tokens = engine.tokenize(text);
