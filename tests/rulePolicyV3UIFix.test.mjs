@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { applyRulePolicyV3UIFix } from '../js/RulePolicyV3UIFix.js';
 
 class FakeClassList {
@@ -57,4 +59,13 @@ test('既存の誤った重大度クラスを除去して最終メタデータ�
     assert.equal(spans[1].classList.has('highlight--manual'), true);
     assert.equal(spans[1].dataset.autoFix, 'false');
     assert.match(ui.matchCountStatus.textContent, /要判断 1/);
+});
+
+test('UI整合アダプターを通常画面とPWAキャッシュへ組み込む', () => {
+    const projectRoot = path.resolve(import.meta.dirname, '..');
+    const app = fs.readFileSync(path.join(projectRoot, 'js', 'app.js'), 'utf-8');
+    const serviceWorker = fs.readFileSync(path.join(projectRoot, 'sw.js'), 'utf-8');
+
+    assert.match(app, /applyRulePolicyV3UIFix/);
+    assert.match(serviceWorker, /RulePolicyV3UIFix\.js/);
 });
