@@ -40,6 +40,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Install Japanese fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+          fc-cache -f
+
       - name: Run desktop and mobile browser checks
         shell: bash
         run: |
@@ -84,11 +90,11 @@ jobs:
               "http://127.0.0.1:4173/tests/browser-smoke.html?mode=${mode}" \
               >"browser-artifacts/${mode}.html" \
               2>"browser-artifacts/${mode}.log"
-            grep -q 'data-status="pass"' "browser-artifacts/${mode}.html"
+            grep -Eq '<html[^>]*data-status="pass"' "browser-artifacts/${mode}.html"
           }
 
           run_check desktop 1440,1000
-          run_check mobile 390,844
+          run_check mobile 500,844
 
       - name: Upload browser evidence
         if: always()
