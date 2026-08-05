@@ -1,0 +1,111 @@
+/* Writer Checker V3 — focused, accessible UI */
+:root {
+    --wc-error-bg: #fee2e2;
+    --wc-error: #991b1b;
+    --wc-warning-bg: #fef3c7;
+    --wc-warning: #92400e;
+    --wc-info-bg: #dbeafe;
+    --wc-info: #1e40af;
+    --wc-manual-bg: #ede9fe;
+    --wc-manual: #5b21b6;
+}
+
+.app-header { padding-block: .75rem; }
+.app-main { gap: 1rem; padding: 1rem 1.25rem 1.25rem; }
+.status-bar--minimal { justify-content: flex-end; min-height: 2rem; }
+.result-pane-header { gap: .75rem; }
+.result-title { min-width: 0; }
+.result-summary { margin-top: .15rem; font-size: .78rem; color: var(--text-muted); white-space: normal; }
+.result-actions { align-items: center; }
+.badge-count--ok { background: #dcfce7; color: #166534; }
+.badge-count--error { background: var(--wc-error-bg); color: var(--wc-error); }
+.badge-count--warning { background: var(--wc-warning-bg); color: var(--wc-warning); }
+.badge-count--info { background: var(--wc-info-bg); color: var(--wc-info); }
+.more-actions { position: relative; }
+.more-actions > summary { list-style: none; }
+.more-actions > summary::-webkit-details-marker { display: none; }
+.more-actions-menu { position: absolute; top: calc(100% + .35rem); right: 0; z-index: 30; min-width: 220px; padding: .35rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--surface-color); box-shadow: var(--shadow-lg); }
+.more-actions-menu .btn { width: 100%; justify-content: flex-start; }
+.highlight { text-decoration: line-through; border-bottom-width: 2px; cursor: pointer; }
+.highlight:focus-visible { outline: 3px solid rgba(79, 70, 229, .35); outline-offset: 2px; }
+.highlight--error { background: var(--wc-error-bg) !important; color: var(--wc-error) !important; border-bottom-color: #dc2626 !important; }
+.highlight--warning { background: var(--wc-warning-bg) !important; color: var(--wc-warning) !important; border-bottom-color: #d97706 !important; }
+.highlight--info { background: var(--wc-info-bg) !important; color: var(--wc-info) !important; border-bottom-color: #2563eb !important; }
+.highlight--manual { text-decoration-style: dotted; box-shadow: inset 0 -2px 0 var(--wc-manual); cursor: help; }
+.issue-insight-panel { margin-top: 1.25rem; padding-top: 1rem; }
+.issue-panel-header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .75rem; }
+.issue-panel-header h3 { font-size: .95rem; }
+.issue-filter-bar { display: flex; flex-wrap: wrap; gap: .35rem; }
+.issue-filter-btn { border: 1px solid var(--border-color); border-radius: 999px; padding: .25rem .6rem; background: transparent; color: var(--text-muted); font: inherit; font-size: .75rem; cursor: pointer; }
+.issue-filter-btn[aria-pressed="true"] { background: var(--primary-color); border-color: var(--primary-color); color: #fff; }
+.issue-group-list { display: grid; gap: .65rem; }
+.issue-group-card { border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: .75rem .85rem; background: var(--surface-color); white-space: normal; }
+.issue-group-card[data-severity="error"] { border-left: 4px solid #dc2626; }
+.issue-group-card[data-severity="warning"] { border-left: 4px solid #d97706; }
+.issue-group-card[data-severity="info"] { border-left: 4px solid #2563eb; }
+.issue-group-heading { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.issue-badges { display: flex; flex-wrap: wrap; gap: .3rem; }
+.issue-severity, .issue-category, .issue-manual { display: inline-flex; align-items: center; border-radius: 999px; padding: .15rem .45rem; font-size: .7rem; font-weight: 700; }
+.issue-severity--error { background: var(--wc-error-bg); color: var(--wc-error); }
+.issue-severity--warning { background: var(--wc-warning-bg); color: var(--wc-warning); }
+.issue-severity--info { background: var(--wc-info-bg); color: var(--wc-info); }
+.issue-category { background: #f1f5f9; color: #475569; }
+.issue-manual { background: var(--wc-manual-bg); color: var(--wc-manual); }
+.issue-occurrence-count { flex: none; color: var(--text-muted); font-size: .78rem; }
+.issue-change { margin-top: .55rem; font-size: .88rem; font-weight: 600; }
+.issue-change del { color: var(--wc-error); }
+.issue-change ins { color: #166534; text-decoration: none; }
+.issue-reason, .issue-examples { margin-top: .35rem; color: var(--text-muted); font-size: .8rem; line-height: 1.55; }
+.issue-group-actions { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .55rem; }
+.issue-disable-rule { margin-left: auto; }
+.modal-content-rules { max-width: 980px; }
+.modal-subtitle { margin-top: .2rem; color: var(--text-muted); font-size: .78rem; }
+.modal-toolbar { display: flex; align-items: center; gap: .5rem; padding: .75rem 1rem; border-bottom: 1px solid var(--border-color); }
+.rule-search-input { flex: 1; width: auto; min-width: 160px; }
+.rule-search-input:focus { width: auto; }
+.rule-modal-body { padding: 1rem; }
+.rule-item { display: block; cursor: default; padding: .7rem; }
+.rule-item-main { display: grid; grid-template-columns: auto minmax(150px, 1fr) auto minmax(150px, 1fr) minmax(90px, .5fr) auto; align-items: center; gap: .45rem; }
+.rule-item .rule-input, .rule-item select, .rule-advanced input { min-width: 0; width: 100%; padding: .5rem .6rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--surface-color); color: var(--text-main); font: inherit; font-size: .84rem; }
+.rule-advanced { margin-top: .55rem; border-top: 1px dashed var(--border-color); padding-top: .45rem; }
+.rule-advanced summary { cursor: pointer; color: var(--text-muted); font-size: .78rem; font-weight: 600; }
+.rule-advanced-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; margin-top: .55rem; }
+.rule-field { display: grid; gap: .25rem; }
+.rule-field > span { color: var(--text-muted); font-size: .72rem; }
+.rule-policy-row { display: flex; flex-wrap: wrap; gap: .55rem 1rem; margin-top: .65rem; }
+.rule-checkbox { display: inline-flex; align-items: center; gap: .3rem; font-size: .78rem; }
+.rule-item--readonly { background: #f8fafc; }
+.rule-item--readonly::before { content: "読み取り専用"; display: inline-block; margin-bottom: .4rem; color: var(--text-muted); font-size: .7rem; }
+.save-state { color: var(--text-muted); font-size: .78rem; }
+.template-help { color: var(--text-muted); font-size: .82rem; line-height: 1.6; }
+.safe-template-list { display: grid; gap: .55rem; margin-top: .8rem; }
+.safe-template-item { display: flex; align-items: flex-start; gap: .55rem; padding: .65rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; }
+.safe-template-item span { display: grid; gap: .15rem; }
+.safe-template-item small { color: var(--text-muted); line-height: 1.45; }
+.side-panel-primary-actions { display: grid; gap: .45rem; }
+.side-panel-note { margin-bottom: .55rem; color: var(--text-muted); font-size: .78rem; line-height: 1.55; }
+.data-actions .btn { flex: 1 1 auto; }
+.mobile-action-bar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 900px) {
+    .app-main { grid-template-columns: 1fr; grid-template-rows: minmax(360px, 1fr) minmax(360px, 1fr); overflow-y: auto; }
+    .rule-item-main { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .rule-item-main .rule-replacement, .rule-item-main .rule-severity, .rule-item-main .btn-remove-rule { grid-column: auto; }
+    .rule-item-main .rule-arrow { display: none; }
+}
+
+@media (max-width: 768px) {
+    .app-main { padding: .75rem .75rem 6rem; }
+    .result-actions { justify-content: flex-start; }
+    .result-actions #copyBtn, .result-actions #replaceBtn { flex: 1 1 auto; }
+    .issue-panel-header { align-items: flex-start; flex-direction: column; }
+    .issue-disable-rule { margin-left: 0; }
+    .modal-toolbar { flex-wrap: wrap; }
+    .modal-toolbar .rule-search-input { flex-basis: 100%; }
+    .rule-item-main { grid-template-columns: auto 1fr auto; }
+    .rule-item-main .rule-target, .rule-item-main .rule-replacement, .rule-item-main .rule-severity { grid-column: 2 / 4; }
+    .rule-item-main .btn-remove-rule { grid-column: 1; grid-row: 4; }
+    .rule-advanced-grid { grid-template-columns: 1fr; }
+}
+
+.confirm-msg { white-space: pre-line; }

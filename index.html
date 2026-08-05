@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>レギュレーション・チェッカー | かたかたラボ</title>
-    <meta name="description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。無料で使えるライター向け校正ツール。">
+    <meta name="description" content="文章を貼り付けるだけで、表記ゆれや独自ルール違反を確認し、安全に一括修正できる無料の文章チェックツール。">
     <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
     <meta name="application-name" content="Writer Checker">
     <meta name="theme-color" content="#4f46e5">
@@ -14,14 +13,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Writer Checker">
     <link rel="canonical" href="https://katakatalab.com/writer-checker/">
-    <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
     <link rel="apple-touch-icon" sizes="192x192" href="icons/apple-touch-icon.png">
     <link rel="manifest" href="manifest.json">
 
-    <!-- OGP -->
     <meta property="og:title" content="レギュレーション・チェッカー">
-    <meta property="og:description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。">
+    <meta property="og:description" content="独自ルールで文章を確認し、安全に修正できる無料ツール。">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="かたかたラボ">
@@ -29,42 +26,38 @@
     <meta property="og:image" content="https://katakatalab.com/writer-checker/icons/pwa-512.png">
     <meta property="og:image:width" content="512">
     <meta property="og:image:height" content="512">
-    <meta property="og:image:alt" content="Writer Checker スコア診断画面">
+    <meta property="og:image:alt" content="Writer Checkerのアイコン">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:site" content="@katakata0522">
     <meta name="twitter:title" content="レギュレーション・チェッカー">
-    <meta name="twitter:description" content="文章の表記ユレからAIの装飾記号まで、カスタムルールで一括チェック＆修正。">
+    <meta name="twitter:description" content="独自ルールで文章を確認し、安全に修正できる無料ツール。">
     <meta name="twitter:image" content="https://katakatalab.com/writer-checker/icons/pwa-512.png">
-    <!-- Analytics (GA4) -->
+
     <script>
         (function initWriterCheckerAnalytics() {
             var GA_ID = 'G-FYFPS7L9X9';
-            var dnt = (navigator.doNotTrack === '1' || window.doNotTrack === '1' || navigator.msDoNotTrack === '1');
+            var dnt = navigator.doNotTrack === '1' || window.doNotTrack === '1' || navigator.msDoNotTrack === '1';
             if (dnt) return;
-
             var script = document.createElement('script');
             script.async = true;
             script.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
             document.head.appendChild(script);
-
             window.dataLayer = window.dataLayer || [];
             window.gtag = window.gtag || function gtag() { dataLayer.push(arguments); };
             window.gtag('js', new Date());
-            window.gtag('config', GA_ID, {
-                anonymize_ip: true
-            });
+            window.gtag('config', GA_ID, { anonymize_ip: true });
         })();
     </script>
-    <link rel="stylesheet" href="style.min.css?v=20260306g">
-    <!-- FontAwesome -->
+    <link rel="stylesheet" href="style.min.css?v=20260805a">
+    <link rel="stylesheet" href="style-v3.css?v=20260805a">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
-    <!-- 構造化データ -->
+
     <script type="application/ld+json">{
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "レギュレーション・チェッカー",
         "url": "https://katakatalab.com/writer-checker/",
-        "description": "文章の表記ユレやAI装飾をカスタムルールで一括チェック＆修正する無料ツール",
+        "description": "文章の表記ゆれや独自ルール違反を確認し、安全に修正する無料ツール",
         "applicationCategory": "UtilityApplication",
         "operatingSystem": "All",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" }
@@ -76,301 +69,178 @@
             {
                 "@type": "Question",
                 "name": "Writer Checkerは無料で使えますか？",
-                "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": "はい。Writer Checkerは無料で使えます。ルールセットの切り替えや一括修正、文章スコア診断に対応しています。"
-                }
+                "acceptedAnswer": { "@type": "Answer", "text": "はい。ルールセットの作成、文章チェック、一括修正、インポートとエクスポートを無料で利用できます。" }
             },
             {
                 "@type": "Question",
-                "name": "どんな文章に向いていますか？",
-                "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": "ブログ記事、ビジネスメール、AI生成文の整形など、日本語表記ゆれや敬語チェックが必要な文章に向いています。"
-                }
+                "name": "どのような文章に向いていますか？",
+                "acceptedAnswer": { "@type": "Answer", "text": "ブログ記事、業務文書、メール、AI生成文など、表記ルールを統一したい文章に向いています。" }
             },
             {
                 "@type": "Question",
-                "name": "文章スコアは何を基準に算出されますか？",
-                "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": "検出件数密度、二重敬語、文の長さ、漢字率、文章量を組み合わせて0〜100点で算出します。"
-                }
+                "name": "URLやコードの中も修正されますか？",
+                "acceptedAnswer": { "@type": "Answer", "text": "既定ではURL、メールアドレス、コードを除外します。ルールごとに除外範囲を変更できます。" }
             }
         ]
     }</script>
 </head>
-
 <body>
     <header class="app-header">
         <div class="header-left">
-            <h1><i class="fa-solid fa-check-double"></i> Writer Checker</h1>
+            <h1><i class="fa-solid fa-check-double" aria-hidden="true"></i> Writer Checker</h1>
             <span class="badge badge-free">FREE</span>
         </div>
         <div class="header-right">
             <div class="rule-selector-container">
                 <label for="ruleSetSelector" class="rule-selector-label">ルールセット</label>
-                <select id="ruleSetSelector" aria-label="ルールセット">
-                    <option value="default">デフォルト (汎用)</option>
-                </select>
-                <button id="headerSampleBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-flask"></i> サンプルを生成</button>
+                <select id="ruleSetSelector" aria-label="ルールセット"></select>
             </div>
-            <button id="sidePanelToggle" class="btn btn-side-toggle" title="設定・ルール管理"><i class="fa-solid fa-bars"></i>
-                設定</button>
+            <button id="sidePanelToggle" class="btn btn-side-toggle" type="button" aria-label="設定を開く">
+                <i class="fa-solid fa-sliders" aria-hidden="true"></i> 設定
+            </button>
         </div>
     </header>
-    <section class="top-status-strip" aria-label="現在の状態">
-        <span class="status-chip"><i class="fa-solid fa-layer-group"></i> ルールセット: <strong id="activeRuleSetStatus">-</strong></span>
-        <span class="status-chip"><i class="fa-solid fa-floppy-disk"></i> 保存状態: <strong id="saveStateStatus">保存済み</strong></span>
-        <span class="status-chip"><i class="fa-solid fa-list-check"></i> 検出件数: <strong id="matchCountStatus">0件</strong></span>
-        <span class="status-chip status-chip-score"><i class="fa-solid fa-gauge-high"></i> 文章スコア: <strong id="writingScoreStatus">-</strong></span>
-        <span class="status-chip"><i class="fa-solid fa-shield-check"></i> 全部盛り判定: <strong id="comprehensiveStatus">-</strong></span>
-    </section>
-    <!-- サイドパネル（右スライドイン） -->
+
     <div id="sidePanelOverlay" class="side-panel-overlay hidden"></div>
-    <aside id="sidePanel" class="side-panel hidden">
+    <aside id="sidePanel" class="side-panel hidden" aria-label="設定">
         <div class="side-panel-header">
-            <h2><i class="fa-solid fa-sliders"></i> 設定</h2>
-            <button id="sidePanelClose" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+            <h2><i class="fa-solid fa-sliders" aria-hidden="true"></i> 設定</h2>
+            <button id="sidePanelClose" class="btn-close" type="button" aria-label="設定を閉じる"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
         </div>
-
         <div class="side-panel-body">
-            <!-- 使い方ガイド（最上部） -->
-            <div class="side-panel-section">
-                <a href="guide/" class="btn btn-sm btn-ghost btn-block" target="_blank"><i
-                        class="fa-solid fa-circle-question"></i> 使い方ガイド</a>
-            </div>
-            <div class="side-panel-section">
-                <button id="installAppBtn" class="btn btn-sm btn-outline btn-block hidden" type="button"><i
-                        class="fa-solid fa-download"></i> アプリをインストール</button>
-            </div>
+            <section class="side-panel-section side-panel-primary-actions">
+                <button id="editRulesBtn" class="btn btn-primary btn-block" type="button"><i class="fa-solid fa-gear" aria-hidden="true"></i> ルールを編集</button>
+                <a href="guide/" class="btn btn-sm btn-ghost btn-block" target="_blank" rel="noopener"><i class="fa-solid fa-circle-question" aria-hidden="true"></i> 使い方ガイド</a>
+                <button id="installAppBtn" class="btn btn-sm btn-outline btn-block hidden" type="button"><i class="fa-solid fa-download" aria-hidden="true"></i> アプリをインストール</button>
+            </section>
 
-            <!-- ルールセット管理 -->
-            <div class="side-panel-section">
+            <section class="side-panel-section">
                 <h3>ルールセット</h3>
                 <div class="side-panel-actions">
-                    <button id="addRuleSetBtn" class="btn btn-sm btn-outline" title="ルールの新規作成"><i
-                            class="fa-solid fa-plus"></i> 新規作成</button>
-                    <button id="deleteRuleSetBtn" class="btn btn-sm btn-ghost btn-danger-icon" title="現在選択中のルールを削除"><i
-                            class="fa-solid fa-trash"></i> 削除</button>
+                    <button id="addRuleSetBtn" class="btn btn-sm btn-outline" type="button"><i class="fa-solid fa-plus" aria-hidden="true"></i> 新規作成</button>
+                    <button id="deleteRuleSetBtn" class="btn btn-sm btn-ghost btn-danger-icon" type="button"><i class="fa-solid fa-trash" aria-hidden="true"></i> 削除</button>
                 </div>
-            </div>
+            </section>
 
-            <!-- ルールのオンオフ -->
-            <div class="side-panel-section">
-                <h3>ルール一覧 <span id="ruleToggleCount" class="badge-count">0/0</span></h3>
-                <div id="ruleToggleList" class="rule-toggle-list">
-                    <!-- JSで描画 -->
-                </div>
-            </div>
-
-            <!-- 設定トグル -->
-            <div class="side-panel-section">
-                <h3>オプション</h3>
-                <label class="toggle-control">
-                    <input type="checkbox" id="removeAsterisks" checked>
-                    <span class="control"></span>
-                    <span class="label-text">アスタリスク装飾を削除</span>
-                </label>
-                <label class="toggle-control">
-                    <input type="checkbox" id="highlightOnly">
-                    <span class="control"></span>
-                    <span class="label-text">指摘のみモード</span>
-                </label>
-            </div>
-
-            <!-- アクションボタン -->
-            <div class="side-panel-section">
+            <section class="side-panel-section">
                 <h3>データ管理</h3>
-                <div class="side-panel-actions">
-                    <button id="exportRulesBtn" class="btn btn-sm btn-ghost"><i class="fa-solid fa-file-export"></i>
-                        エクスポート</button>
-                    <button id="importRulesBtn" class="btn btn-sm btn-ghost"><i class="fa-solid fa-file-import"></i>
-                        インポート</button>
-                    <button id="shareRulesBtn" class="btn btn-sm btn-ghost"><i class="fa-solid fa-link"></i>
-                        共有リンク</button>
+                <div class="side-panel-actions data-actions">
+                    <button id="exportRulesBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-file-export" aria-hidden="true"></i> 書き出す</button>
+                    <button id="importRulesBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-file-import" aria-hidden="true"></i> 読み込む</button>
+                    <button id="shareRulesBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-link" aria-hidden="true"></i> 共有リンク</button>
                 </div>
-                <input type="file" id="importFileInput" accept=".json" class="hidden">
-            </div>
+                <input type="file" id="importFileInput" accept=".json,application/json" class="hidden">
+            </section>
 
-            <!-- ルール編集 -->
-            <div class="side-panel-section">
-                <button id="editRulesBtn" class="btn btn-primary btn-block"><i class="fa-solid fa-gear"></i>
-                    ルールを編集する</button>
-            </div>
+            <section class="side-panel-section">
+                <h3>外部エディタ連携</h3>
+                <p class="side-panel-note">下のボタンをブックマークバーへドラッグすると、noteやWordPressの文章を送れます。</p>
+                <a id="bookmarkletLink" class="bookmarklet-link" href="#">Writer Checkerで確認</a>
+            </section>
 
-            <div class="side-panel-section">
-                <details>
-                    <summary class="bookmarklet-summary"><i class="fa-solid fa-bookmark"></i> WordPress / note 連携ブックマークレット
-                    </summary>
-                    <div class="bookmarklet-body">
-                        <a id="bookmarkletLink" class="bookmarklet-link" href="#">✅
-                            Writer Checkerでチェック</a>
-                        <div class="bookmarklet-instructions">
-                            <p><strong>使い方：</strong></p>
-                            <ol class="bookmarklet-steps">
-                                <li>↑のボタンを<strong>ブックマークバーにドラッグ</strong>してください</li>
-                                <li>WordPressやnoteの<strong>編集画面</strong>を開きます</li>
-                                <li>ブックマークバーの<strong>「Writer Checkerでチェック」をクリック</strong></li>
-                                <li>テキストが自動でWriter Checkerに送られます！</li>
-                            </ol>
-                        </div>
-                    </div>
-                </details>
-            </div>
-
-            <!-- 法的リンク -->
-            <div class="side-panel-section side-panel-legal">
-                <a href="terms/" target="_blank"><i class="fa-solid fa-file-contract"></i> 利用規約</a>
+            <section class="side-panel-section side-panel-legal">
+                <a href="terms/" target="_blank" rel="noopener">利用規約</a>
                 <span class="legal-divider">|</span>
-                <a href="privacy/" target="_blank"><i class="fa-solid fa-shield-halved"></i> プライバシーポリシー</a>
-            </div>
+                <a href="privacy/" target="_blank" rel="noopener">プライバシーポリシー</a>
+            </section>
         </div>
     </aside>
 
     <main class="app-main">
         <section class="editor-pane">
             <div class="pane-header">
-                <h2><i class="fa-solid fa-pen-nib"></i> 元テキスト</h2>
+                <h2><i class="fa-solid fa-pen-nib" aria-hidden="true"></i> 文章</h2>
                 <div class="pane-actions">
-                    <button id="undoBtn" class="btn btn-sm btn-ghost" style="display:none;" title="Ctrl+Z"><i
-                            class="fa-solid fa-rotate-left"></i> 元に戻す</button>
-                    <button id="clearBtn" class="btn btn-sm btn-ghost">クリア</button>
-                    <button id="pasteBtn" class="btn btn-sm btn-ghost">貼り付け</button>
-                    <button id="sampleBtn" class="btn btn-sm btn-ghost" title="サンプル文で試す"><i
-                            class="fa-solid fa-flask"></i> サンプル</button>
+                    <button id="undoBtn" class="btn btn-sm btn-ghost" type="button" hidden><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> 元に戻す</button>
+                    <button id="clearBtn" class="btn btn-sm btn-ghost" type="button">クリア</button>
+                    <button id="pasteBtn" class="btn btn-sm btn-ghost" type="button">貼り付け</button>
+                    <button id="sampleBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-flask" aria-hidden="true"></i> サンプル</button>
                 </div>
             </div>
-            <textarea id="sourceText"
-                placeholder="ここに文章を貼り付けてください...&#10;テキストファイルをドラッグ＆ドロップでもOK！&#10;&#10;例：&#10;このサービスはＷＥＢ上で出来ます。&#10;※AIが出力した**強調**テキストも一発で消去！"></textarea>
-            <div class="status-bar">
-                <span id="charCount">文字数: 0</span>
-                <span class="status-divider">|</span>
-                <span id="charCountNoSpace">空白なし: 0</span>
-                <span class="status-divider">|</span>
-                <span id="lineCount">行数: 0</span>
-                <span class="status-divider">|</span>
-                <span id="manuscriptCount">原稿用紙: 0枚</span>
-                <span class="status-divider">|</span>
-                <span id="readTime">読了: 0分</span>
-                <span class="status-divider">|</span>
-                <span id="kanjiRate">漢字率: 0%</span>
-                <div id="kanjiBar" class="kanji-bar">
-                    <div id="kanjiBarFill" class="kanji-bar-fill"></div>
-                </div>
-            </div>
+            <textarea id="sourceText" aria-label="確認する文章" placeholder="ここに文章を貼り付けてください。テキストファイルのドラッグ＆ドロップにも対応しています。"></textarea>
+            <div class="status-bar status-bar--minimal"><span id="charCount">0文字</span></div>
         </section>
 
         <section class="preview-pane">
-            <div class="pane-header">
-                <h2><i class="fa-solid fa-magnifying-glass"></i> チェック結果 <span id="matchCount"
-                        class="badge-count">0</span></h2>
-                <div class="pane-actions">
-                    <button id="exportReportBtn" class="btn btn-sm btn-ghost" title="チェック結果をテキストで保存"><i
-                            class="fa-solid fa-file-export"></i> レポート</button>
-                    <button id="fullCheckBtn" class="btn btn-sm btn-ghost" title="全部盛り判定を表示"><i
-                            class="fa-solid fa-clipboard-check"></i> 全部盛りチェック</button>
-                    <button id="shareScoreXBtn" class="btn btn-sm btn-ghost" title="文章スコアをXでシェア"><i
-                            class="fa-brands fa-x-twitter"></i> Xでスコア共有</button>
-                    <button id="replaceBtn" class="btn btn-sm btn-primary" title="検出内容を一括で修正"><i
-                            class="fa-solid fa-wand-magic-sparkles"></i> 一括修正</button>
-                    <button id="copyBtn" class="btn btn-sm btn-primary" title="修正後のテキストをコピー (Ctrl+Shift+C)"><i
-                            class="fa-solid fa-copy"></i> 修正済みをコピー</button>
+            <div class="pane-header result-pane-header">
+                <div class="result-title">
+                    <h2><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> チェック結果 <span id="matchCount" class="badge-count badge-count--ok">0</span></h2>
+                    <p id="matchCountStatus" class="result-summary" aria-live="polite">指摘なし</p>
+                </div>
+                <div class="pane-actions result-actions">
+                    <details class="more-actions">
+                        <summary class="btn btn-sm btn-ghost" aria-label="その他の操作"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></summary>
+                        <div class="more-actions-menu">
+                            <button id="exportReportBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-file-export" aria-hidden="true"></i> 検査レポートを保存</button>
+                        </div>
+                    </details>
+                    <button id="replaceBtn" class="btn btn-sm btn-outline" type="button" title="自動修正を許可したルールだけ本文へ反映"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> 本文へ反映</button>
+                    <button id="copyBtn" class="btn btn-sm btn-primary" type="button" title="自動修正可能な箇所を反映した文章をコピー"><i class="fa-solid fa-copy" aria-hidden="true"></i> 修正結果をコピー</button>
                 </div>
             </div>
-            <div id="resultOutput" class="result-content">
-                <div class="placeholder-text">テキストを入力すると、レギュレーション違反がハイライトされます。</div>
-            </div>
+            <div id="resultOutput" class="result-content"><div class="placeholder-text">文章を貼り付けると、ルールに一致した箇所を表示します。</div></div>
         </section>
     </main>
 
-    <!-- Rule Editor Modal -->
-    <div id="ruleModal" class="modal hidden">
-        <div class="modal-content">
+    <div id="ruleModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="ruleModalTitle">
+        <div class="modal-content modal-content-rules">
             <div class="modal-header">
-                <h2><i class="fa-solid fa-sliders"></i> ルールセット設定</h2>
-                <button id="closeModalBtn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="modal-body">
-
-                <div class="settings-group">
-                    <div class="group-header">
-                        <h3>置換ルール</h3>
-                        <div class="group-header-actions">
-                            <input type="text" id="ruleSearchInput" class="rule-search-input" placeholder="ルールを検索...">
-                            <button id="regexTemplateBtn" class="btn btn-sm btn-ghost" title="正規表現テンプレートから追加"><i
-                                    class="fa-solid fa-code"></i> テンプレート</button>
-                            <button id="addRuleBtn" class="btn btn-sm btn-outline"><i class="fa-solid fa-plus"></i>
-                                追加</button>
-                        </div>
-                    </div>
-                    <div class="rules-list" id="rulesList">
-                        <!-- Rules injected here by JS -->
-                    </div>
+                <div>
+                    <h2 id="ruleModalTitle"><i class="fa-solid fa-sliders" aria-hidden="true"></i> ルール編集</h2>
+                    <p class="modal-subtitle">普段は検出語・推奨表記・重大度だけを確認し、必要な項目だけ詳細設定を開きます。</p>
                 </div>
+                <button id="closeModalBtn" class="btn-close" type="button" aria-label="閉じる"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </div>
-                <div class="modal-footer modal-footer--split">
-                <div class="modal-footer-left">
-                    <button id="exportRulesBtnModal" class="btn btn-sm btn-outline" title="ルールをJSONファイルとしてダウンロード"><i
-                            class="fa-solid fa-download"></i> エクスポート</button>
-                    <button id="importRulesBtnModal" class="btn btn-sm btn-outline" title="JSONファイルからルールを読み込む"><i
-                            class="fa-solid fa-file-import"></i> インポート</button>
-                    <button id="shareRulesBtnModal" class="btn btn-sm btn-outline" title="現在のルールセットの共有リンクをコピー"><i
-                            class="fa-solid fa-link"></i> 共有</button>
-                    <input type="file" id="importFileInputModal" accept=".json" style="display: none;">
-                </div>
-                <button id="saveRulesBtn" class="btn btn-primary">設定を保存</button>
+            <div class="modal-toolbar">
+                <input type="search" id="ruleSearchInput" class="rule-search-input" placeholder="ルールを検索" aria-label="ルールを検索">
+                <button id="regexTemplateBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> 安全テンプレート</button>
+                <button id="addRuleBtn" class="btn btn-sm btn-outline" type="button"><i class="fa-solid fa-plus" aria-hidden="true"></i> 追加</button>
+            </div>
+            <div class="modal-body rule-modal-body"><div id="rulesList" class="rules-list"></div></div>
+            <div class="modal-footer modal-footer--split">
+                <p class="save-state">状態: <strong id="saveStateStatus">保存済み</strong></p>
+                <button id="saveRulesBtn" class="btn btn-primary" type="button">変更を保存</button>
             </div>
         </div>
     </div>
 
-    <!-- ルールセット名入力モーダル -->
-    <div id="nameModal" class="modal hidden">
+    <div id="nameModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="nameModalTitle">
         <div class="modal-content modal-content-sm">
             <div class="modal-header">
-                <h2><i class="fa-solid fa-folder-plus"></i> 新規ルールセット</h2>
-                <button id="closeNameModalBtn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+                <h2 id="nameModalTitle"><i class="fa-solid fa-folder-plus" aria-hidden="true"></i> 新規ルールセット</h2>
+                <button id="closeNameModalBtn" class="btn-close" type="button" aria-label="閉じる"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </div>
             <div class="modal-body">
                 <label for="newRuleSetName" class="input-label">ルールセット名</label>
-                <input type="text" id="newRuleSetName" class="input-field" placeholder="例: ブログ用、ビジネスメール用">
+                <input type="text" id="newRuleSetName" class="input-field" maxlength="120" placeholder="例: A社ブログ用">
                 <p id="nameModalError" class="input-error hidden"></p>
             </div>
-            <div class="modal-footer">
-                <button id="confirmNameBtn" class="btn btn-primary">作成する</button>
-            </div>
+            <div class="modal-footer"><button id="confirmNameBtn" class="btn btn-primary" type="button">作成</button></div>
         </div>
     </div>
 
-    <!-- 削除確認モーダル -->
-    <div id="confirmModal" class="modal hidden">
+    <div id="confirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
         <div class="modal-content modal-content-sm">
             <div class="modal-header">
-                <h2><i class="fa-solid fa-triangle-exclamation"></i> 確認</h2>
-                <button id="closeConfirmModalBtn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+                <h2 id="confirmModalTitle"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> 確認</h2>
+                <button id="closeConfirmModalBtn" class="btn-close" type="button" aria-label="閉じる"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </div>
-            <div class="modal-body">
-                <p id="confirmModalMsg" class="confirm-msg"></p>
-            </div>
+            <div class="modal-body"><p id="confirmModalMsg" class="confirm-msg"></p></div>
             <div class="modal-footer modal-footer--compact">
-                <button id="confirmModalCancelBtn" class="btn btn-sm btn-ghost">キャンセル</button>
-                <button id="confirmModalOkBtn" class="btn btn-sm btn-primary btn-danger">削除する</button>
+                <button id="confirmModalCancelBtn" class="btn btn-sm btn-ghost" type="button">キャンセル</button>
+                <button id="confirmModalOkBtn" class="btn btn-sm btn-primary" type="button">実行</button>
             </div>
         </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="toast hidden">コピーしました！</div>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-    <nav class="mobile-action-bar" aria-label="モバイルクイック操作">
-        <button id="mobileSampleBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-flask"></i> サンプル</button>
-        <button id="mobileReplaceBtn" class="btn btn-sm btn-primary" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> 修正</button>
-        <button id="mobileCopyBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-copy"></i> コピー</button>
-        <button id="mobileSettingsBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-sliders"></i> 設定</button>
+    <nav class="mobile-action-bar" aria-label="モバイル操作">
+        <button id="mobileReplaceBtn" class="btn btn-sm btn-outline" type="button"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> 反映</button>
+        <button id="mobileCopyBtn" class="btn btn-sm btn-primary" type="button"><i class="fa-solid fa-copy" aria-hidden="true"></i> コピー</button>
+        <button id="mobileSettingsBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-sliders" aria-hidden="true"></i> 設定</button>
     </nav>
 
-
-    <script type="module" src="js/app.js?v=20260306d"></script>
+    <script type="module" src="js/app.js?v=20260805a"></script>
 </body>
-
 </html>
