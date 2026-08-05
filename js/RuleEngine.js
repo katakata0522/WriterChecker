@@ -1,150 +1,159 @@
 /**
- * Writer Checker — RuleEngine
- * テキストに対してルールベースのマッチング・置換を行うエンジン。
- * リテラル文字列と正規表現パターンの両方に対応。
+ * Writer Checker — RuleEngine V3
+ * 全文上で正規表現の文脈を維持し、ルール別除外と自動修正可否を尊重する。
  */
+import {
+    collectScopedRanges,
+    isMatchExcluded,
+    normalizeRegexFlags,
+    normalizeRuleArray,
+    normalizeRuleV3,
+    overlaps,
+    validateRegexSafety
+} from './RuleSchema.js';
+
+function isOccupied(occupied, start, end) {
+    return occupied.some((range) => overlaps(start, end, range.start, range.end));
+}
+
+function parseReplaceArguments(args) {
+    const hasNamedGroups = typeof args[args.length - 1] === 'object' && args[args.length - 1] !== null;
+    return {
+        match: args[0],
+        captures: args.slice(1, hasNamedGroups ? -3 : -2),
+        offset: hasNamedGroups ? args[args.length - 3] : args[args.length - 2],
+        source: hasNamedGroups ? args[args.length - 2] : args[args.length - 1],
+        groups: hasNamedGroups ? args[args.length - 1] : null
+    };
+}
+
+export function expandReplacement(replacement, { match, captures, offset, source, groups }) {
+    return String(replacement).replace(/\$([$&'`]|\d{1,2}|<[^>]+>)/g, (whole, token) => {
+        if (token === '$') return '$';
+        if (token === '&') return match;
+        if (token === '`') return source.slice(0, offset);
+        if (token === "'") return source.slice(offset + match.length);
+        if (token.startsWith('<') && token.endsWith('>')) {
+            if (!groups) return whole;
+            return groups[token.slice(1, -1)] ?? '';
+        }
+        if (/^\d{1,2}$/.test(token)) {
+            let index = Number(token);
+            if (index > 0 && index <= captures.length) return captures[index - 1] ?? '';
+            if (token.length === 2) {
+                index = Number(token[0]);
+                if (index > 0 && index <= captures.length) return `${captures[index - 1] ?? ''}${token[1]}`;
+            }
+        }
+        return whole;
+    });
+}
+
+function replacementForMatch(rule, match, text) {
+    return expandReplacement(rule.replacement, {
+        match: match[0], captures: match.slice(1), offset: match.index, source: text, groups: match.groups || null
+    });
+}
+
 export class RuleEngine {
     constructor() {
-        /** @type {Array<{target: string, replacement: string, isRegex?: boolean}>} */
         this.rules = [];
-        this.removeAsterisks = true;
+        this.removeAsterisks = false;
     }
 
     setRules(rules) {
-        this.rules = rules;
+        this.rules = normalizeRuleArray(rules) || [];
     }
 
-    setRemoveAsterisks(value) {
-        this.removeAsterisks = value;
+    setRemoveAsterisks() {
+        this.removeAsterisks = false;
     }
 
-    /**
-     * 正規表現の特殊文字をエスケープする
-     * @param {string} str
-     * @returns {string}
-     */
-    static escapeRegExp(str) {
-        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    static escapeRegExp(value) {
+        return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    /**
-     * ルールからRegExpを安全に生成する。不正パターンはnullを返す。
-     * @param {object} rule
-     * @returns {RegExp|null}
-     */
-    _buildRegex(rule) {
-        if (!rule.target) return null;
+    _buildRegex(rawRule) {
+        const rule = normalizeRuleV3(rawRule);
+        if (!rule?.target) return null;
         try {
+            if (rule.isRegex) {
+                const validation = validateRegexSafety(rule.target);
+                if (!validation.safe) {
+                    console.warn(`安全でない正規表現: "${rule.target}"`, validation.reason);
+                    return null;
+                }
+            }
             const pattern = rule.isRegex ? rule.target : RuleEngine.escapeRegExp(rule.target);
-            return new RegExp(pattern, 'g');
-        } catch (e) {
-            console.warn(`無効な正規表現パターン: "${rule.target}"`, e.message);
+            const flags = rule.isRegex ? normalizeRegexFlags(rule.flags) : 'g';
+            return new RegExp(pattern, flags);
+        } catch (error) {
+            console.warn(`無効な正規表現パターン: "${rule.target}"`, error.message);
             return null;
         }
     }
 
-    /**
-     * テキストをルールに基づいて「text」と「highlight」のトークン配列に分解する
-     * @param {string} text
-     * @returns {Array<{type: string, content: string, replacement?: string, target?: string}>}
-     */
     tokenize(text) {
         if (!text) return [];
-
-        let tokens = [{ type: 'text', content: text }];
-
-        // アスタリスク除去（AI出力クリーン用）
-        if (this.removeAsterisks) {
-            tokens = this._applyHighlight(tokens, /(\*\*|\*)/g, '', '');
-        }
-
-        // 各ルールを順に適用（enabled=falseのルールはスキップ）
-        for (const [ruleIndex, rule] of this.rules.entries()) {
-            if (rule.enabled === false) continue;
+        const protectedRanges = collectScopedRanges(text);
+        const occupied = [];
+        const highlights = [];
+        for (const [ruleIndex, rawRule] of this.rules.entries()) {
+            const rule = normalizeRuleV3(rawRule);
+            if (!rule || !rule.enabled || !rule.target) continue;
             const regex = this._buildRegex(rule);
             if (!regex) continue;
-            tokens = this._applyHighlight(tokens, regex, rule.replacement, rule.target, ruleIndex);
+            regex.lastIndex = 0;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                if (match[0] === '') {
+                    if (regex.lastIndex === match.index) regex.lastIndex++;
+                    continue;
+                }
+                const start = match.index;
+                const end = start + match[0].length;
+                if (isOccupied(occupied, start, end)) continue;
+                if (isMatchExcluded(protectedRanges, start, end, rule.excludeScopes)) continue;
+                highlights.push({ start, end, token: {
+                    type: 'highlight', content: match[0], replacement: replacementForMatch(rule, match, text),
+                    target: rule.target, ruleIndex, ruleMeta: rule, start, end
+                }});
+                occupied.push({ start, end });
+            }
         }
-
+        highlights.sort((left, right) => left.start - right.start || left.end - right.end);
+        const tokens = [];
+        let cursor = 0;
+        for (const item of highlights) {
+            if (item.start > cursor) tokens.push({ type: 'text', content: text.slice(cursor, item.start) });
+            tokens.push(item.token);
+            cursor = item.end;
+        }
+        if (cursor < text.length) tokens.push({ type: 'text', content: text.slice(cursor) });
         return tokens;
     }
 
-    /**
-     * トークン配列内のtextトークンにregexを適用し、マッチ箇所をhighlightトークンに分割する
-     * @param {Array} tokens
-     * @param {RegExp} regex
-     * @param {string} replacement
-     * @param {string} originalTarget
-     * @param {number|null} ruleIndex
-     * @returns {Array}
-     */
-    _applyHighlight(tokens, regex, replacement, originalTarget, ruleIndex = null) {
-        const result = [];
-
-        for (const token of tokens) {
-            if (token.type !== 'text') {
-                result.push(token);
-                continue;
-            }
-
-            let lastIndex = 0;
-            let match;
-            regex.lastIndex = 0;
-
-            while ((match = regex.exec(token.content)) !== null) {
-                // 空文字マッチの無限ループ防止
-                if (match[0] === '' && regex.lastIndex === match.index) {
-                    regex.lastIndex++;
-                    continue;
-                }
-
-                // マッチ前のテキスト
-                if (match.index > lastIndex) {
-                    result.push({ type: 'text', content: token.content.substring(lastIndex, match.index) });
-                }
-
-                // マッチ箇所をハイライトトークンとして追加
-                result.push({
-                    type: 'highlight',
-                    content: match[0],
-                    replacement,
-                    target: originalTarget || match[0],
-                    ruleIndex
-                });
-
-                lastIndex = regex.lastIndex;
-            }
-
-            // 残りのテキスト
-            if (lastIndex < token.content.length) {
-                result.push({ type: 'text', content: token.content.substring(lastIndex) });
-            }
-        }
-
-        return result;
+    _replaceWithPolicy(text, regex, rule) {
+        const protectedRanges = collectScopedRanges(text);
+        regex.lastIndex = 0;
+        return text.replace(regex, (...args) => {
+            const parsed = parseReplaceArguments(args);
+            const end = parsed.offset + parsed.match.length;
+            if (isMatchExcluded(protectedRanges, parsed.offset, end, rule.excludeScopes)) return parsed.match;
+            return expandReplacement(rule.replacement, parsed);
+        });
     }
 
-    /**
-     * 全ルールを一括適用したクリーンテキストを返す
-     * @param {string} text
-     * @returns {string}
-     */
     getCleanedText(text) {
         if (!text) return text;
-
         let result = text;
-
-        if (this.removeAsterisks) {
-            result = result.replace(/\*\*/g, '').replace(/\*/g, '');
-        }
-
-        for (const rule of this.rules) {
-            if (rule.enabled === false) continue;
+        for (const rawRule of this.rules) {
+            const rule = normalizeRuleV3(rawRule);
+            if (!rule || !rule.enabled || !rule.autoFix || !rule.target) continue;
             const regex = this._buildRegex(rule);
             if (!regex) continue;
-            result = result.replace(regex, rule.replacement);
+            result = this._replaceWithPolicy(result, regex, rule);
         }
-
         return result;
     }
 }
