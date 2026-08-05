@@ -88,7 +88,7 @@ test('URL・メール・コード内は検査せず通常本文だけを検出�
     const text = [
         '本文では出来る。',
         'https://example.com/出来る',
-        'user出来る@example.com',
+        'user@example.com',
         '`出来る`',
         '```js',
         'const 出来る = true;',
@@ -104,6 +104,7 @@ test('URL・メール・コード内は検査せず通常本文だけを検出�
     assert.equal(engine.getCleanedText(text).split('できる').length - 1, 1);
     assert.match(engine.getCleanedText(text), /https:\/\/example\.com\/出来る/);
     assert.match(engine.getCleanedText(text), /`出来る`/);
+    assert.match(engine.getCleanedText(text), /user@example\.com/);
 });
 
 test('保護範囲は重複しても安全に統合される', () => {
