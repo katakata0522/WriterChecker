@@ -63,6 +63,16 @@
             verify('エラーオーバーレイがない', !doc.querySelector('[data-nextjs-dialog], .vite-error-overlay, #webpack-dev-server-client-overlay'));
 
             const source = doc.getElementById('sourceText');
+            const sampleBtn = doc.getElementById('sampleBtn');
+            verify('空のときだけサンプル導線を表示する', !sampleBtn.hidden);
+            sampleBtn.click();
+            await wait(500);
+            verify('サンプル挿入後は導線を隠す', sampleBtn.hidden);
+            doc.getElementById('undoBtn').click();
+            await wait(350);
+            verify('空の状態へUndoできる', source.value === '');
+            verify('空へ戻るとサンプル導線を再表示する', !sampleBtn.hidden);
+
             const original = 'ＷＥＢ上で出来る。URLはhttps://example.com/ＷＥＢです。メールはuser@example.com。';
             source.value = original;
             source.dispatchEvent(new win.Event('input', { bubbles: true }));
@@ -72,6 +82,8 @@
             verify('想定した2件を検出する', highlights.length === 2, `actual=${highlights.length}`);
             verify('URL内を誤検出しない', highlights.every((item) => !item.textContent.includes('example.com')));
             verify('指摘をルール単位で集約する', doc.querySelectorAll('.issue-group-card').length === 2);
+            verify('解析終了後にaria-busyを解除する', doc.getElementById('resultOutput').getAttribute('aria-busy') === 'false');
+            verify('修正可能な指摘があると反映を有効化する', !doc.getElementById('replaceBtn').disabled);
 
             doc.getElementById('replaceBtn').click();
             await wait(500);
@@ -86,17 +98,36 @@
             await wait(150);
             verify('設定パネルを開ける', !doc.getElementById('sidePanel').classList.contains('hidden'));
             verify('aria-expandedが同期する', doc.getElementById('sidePanelToggle').getAttribute('aria-expanded') === 'true');
+            verify('ルールセット複製を利用できる', Boolean(doc.getElementById('duplicateRuleSetBtn')));
 
             doc.getElementById('editRulesBtn').click();
             await wait(200);
             verify('ルール編集画面を開ける', !doc.getElementById('ruleModal').classList.contains('hidden'));
-            verify('ルール一覧を表示する', doc.querySelectorAll('.rule-item').length > 0);
+            const initialRuleCount = doc.querySelectorAll('.rule-item').length;
+            verify('ルール一覧を表示する', initialRuleCount > 0);
             verify('詳細設定を折りたためる', doc.querySelectorAll('.rule-item details').length > 0);
+            verify('ルール順序を変更できる', doc.querySelectorAll('.btn-rule-move').length === initialRuleCount * 2);
+
+            doc.getElementById('addRuleBtn').click();
+            await wait(100);
+            verify('ルールを作業用ドラフトへ追加できる', doc.querySelectorAll('.rule-item').length === initialRuleCount + 1);
+            doc.getElementById('closeModalBtn').click();
+            await wait(100);
+            verify('未保存編集の破棄確認を表示する', !doc.getElementById('confirmModal').classList.contains('hidden'));
+            doc.getElementById('confirmModalOkBtn').click();
+            await wait(150);
+            doc.getElementById('sidePanelToggle').click();
+            await wait(100);
+            doc.getElementById('editRulesBtn').click();
+            await wait(150);
+            verify('破棄したルール追加が残らない', doc.querySelectorAll('.rule-item').length === initialRuleCount);
             doc.getElementById('closeModalBtn').click();
 
             const mobileBar = doc.querySelector('.mobile-action-bar');
             const mobileLayout = win.matchMedia('(max-width: 768px)').matches;
             const mobileBarVisible = mobileBar && win.getComputedStyle(mobileBar).display !== 'none';
+            const topReplaceVisible = win.getComputedStyle(doc.getElementById('replaceBtn')).display !== 'none';
+            const topCopyVisible = win.getComputedStyle(doc.getElementById('copyBtn')).display !== 'none';
             const scrollWidth = Math.max(doc.documentElement.scrollWidth, doc.body.scrollWidth);
             const viewportWidth = doc.documentElement.clientWidth;
             verify('横スクロールが発生しない', scrollWidth <= viewportWidth + 2, `${scrollWidth}/${viewportWidth}`);
@@ -104,9 +135,11 @@
                 verify('390pxのスマートフォン幅で表示する', viewportWidth === 390, `actual=${viewportWidth}`);
                 verify('スマートフォン用レイアウトが適用される', mobileLayout);
                 verify('モバイル操作バーが表示される', mobileBarVisible);
+                verify('モバイルでは上部の重複操作を隠す', !topReplaceVisible && !topCopyVisible);
             } else {
                 verify('デスクトップ幅が適用される', !mobileLayout);
                 verify('モバイル操作バーが非表示', !mobileBarVisible);
+                verify('デスクトップでは上部の主要操作を表示する', topReplaceVisible && topCopyVisible);
             }
 
             verify('結果件数がライブ通知される', doc.getElementById('matchCountStatus')?.getAttribute('aria-live') === 'polite');

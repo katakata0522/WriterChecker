@@ -8,23 +8,35 @@ import {
     normalizeRegexFlags,
     normalizeRuleArray,
     normalizeRuleV3,
-    overlaps,
     validateRegexSafety
 } from './RuleSchema.js';
 
-function isOccupied(occupied, start, end) {
-    return occupied.some((range) => overlaps(start, end, range.start, range.end));
-}
+class OccupiedRangeIndex {
+    constructor() {
+        this.ranges = [];
+    }
 
-function parseReplaceArguments(args) {
-    const hasNamedGroups = typeof args[args.length - 1] === 'object' && args[args.length - 1] !== null;
-    return {
-        match: args[0],
-        captures: args.slice(1, hasNamedGroups ? -3 : -2),
-        offset: hasNamedGroups ? args[args.length - 3] : args[args.length - 2],
-        source: hasNamedGroups ? args[args.length - 2] : args[args.length - 1],
-        groups: hasNamedGroups ? args[args.length - 1] : null
-    };
+    _insertionIndex(start) {
+        let low = 0;
+        let high = this.ranges.length;
+        while (low < high) {
+            const middle = (low + high) >> 1;
+            if (this.ranges[middle].start < start) low = middle + 1;
+            else high = middle;
+        }
+        return low;
+    }
+
+    overlaps(start, end) {
+        const index = this._insertionIndex(start);
+        const previous = this.ranges[index - 1];
+        const next = this.ranges[index];
+        return Boolean((previous && previous.end > start) || (next && next.start < end));
+    }
+
+    add(start, end) {
+        this.ranges.splice(this._insertionIndex(start), 0, { start, end });
+    }
 }
 
 export function expandReplacement(replacement, { match, captures, offset, source, groups }) {
@@ -96,11 +108,12 @@ export class RuleEngine {
     tokenize(text) {
         if (!text) return [];
         const protectedRanges = collectScopedRanges(text);
-        const occupied = [];
+        const occupied = new OccupiedRangeIndex();
         const highlights = [];
-        for (const [ruleIndex, rawRule] of this.rules.entries()) {
-            const rule = normalizeRuleV3(rawRule);
-            if (!rule || !rule.enabled || !rule.target) continue;
+
+        for (const [ruleIndex, rule] of this.rules.entries()) {
+            if (!rule?.enabled || !rule.target) continue;
+            if (!rule.isRegex && !text.includes(rule.target)) continue;
             const regex = this._buildRegex(rule);
             if (!regex) continue;
             regex.lastIndex = 0;
@@ -112,15 +125,16 @@ export class RuleEngine {
                 }
                 const start = match.index;
                 const end = start + match[0].length;
-                if (isOccupied(occupied, start, end)) continue;
+                if (occupied.overlaps(start, end)) continue;
                 if (isMatchExcluded(protectedRanges, start, end, rule.excludeScopes)) continue;
                 highlights.push({ start, end, token: {
                     type: 'highlight', content: match[0], replacement: replacementForMatch(rule, match, text),
                     target: rule.target, ruleIndex, ruleMeta: rule, start, end
                 }});
-                occupied.push({ start, end });
+                occupied.add(start, end);
             }
         }
+
         highlights.sort((left, right) => left.start - right.start || left.end - right.end);
         const tokens = [];
         let cursor = 0;
@@ -133,27 +147,29 @@ export class RuleEngine {
         return tokens;
     }
 
-    _replaceWithPolicy(text, regex, rule) {
-        const protectedRanges = collectScopedRanges(text);
-        regex.lastIndex = 0;
-        return text.replace(regex, (...args) => {
-            const parsed = parseReplaceArguments(args);
-            const end = parsed.offset + parsed.match.length;
-            if (isMatchExcluded(protectedRanges, parsed.offset, end, rule.excludeScopes)) return parsed.match;
-            return expandReplacement(rule.replacement, parsed);
-        });
+    /**
+     * 検出時と同じトークン列から修正結果を組み立てる。
+     * 置換結果を次のルールへ再入力しないため、連鎖置換とプレビュー不一致を防ぐ。
+     */
+    createFixPlan(text, preparedTokens = null) {
+        const tokens = Array.isArray(preparedTokens) ? preparedTokens : this.tokenize(text);
+        let autoFixCount = 0;
+        let manualCount = 0;
+        const cleanedText = tokens.map((token) => {
+            if (token.type !== 'highlight') return token.content;
+            if (token.ruleMeta?.autoFix === false) {
+                manualCount++;
+                return token.content;
+            }
+            const replacement = token.replacement ?? '';
+            if (replacement !== token.content) autoFixCount++;
+            return replacement;
+        }).join('');
+        return { cleanedText, autoFixCount, manualCount, tokens };
     }
 
     getCleanedText(text) {
         if (!text) return text;
-        let result = text;
-        for (const rawRule of this.rules) {
-            const rule = normalizeRuleV3(rawRule);
-            if (!rule || !rule.enabled || !rule.autoFix || !rule.target) continue;
-            const regex = this._buildRegex(rule);
-            if (!regex) continue;
-            result = this._replaceWithPolicy(result, regex, rule);
-        }
-        return result;
+        return this.createFixPlan(text).cleanedText;
     }
 }

@@ -1,8 +1,16 @@
+function cloneRules(rules) {
+    return Array.isArray(rules)
+        ? rules.map((rule) => ({ ...rule, excludeScopes: Array.isArray(rule.excludeScopes) ? [...rule.excludeScopes] : [] }))
+        : [];
+}
+
 export const RuleSetMethods = {
 _bindRuleSetEvents() {
         this.ruleSetSelector?.addEventListener('change', (event) => {
             const nextName = event.target.value;
             const switchSet = () => {
+                this._discardRuleDraft?.();
+                if (this.ruleModal && !this.ruleModal.classList.contains('hidden')) this._finishRuleModalClose?.();
                 this.activeSetName = nextName;
                 this._syncActiveRules();
                 this.storageManager.saveActiveSetName(nextName);
@@ -27,14 +35,16 @@ _bindRuleSetEvents() {
         });
 
         this.addRuleSetBtn?.addEventListener('click', () => {
+            this._nameModalReturnFocus = typeof document !== 'undefined' ? document.activeElement : null;
             this.newRuleSetNameInput.value = '';
             this.nameModalError.classList.add('hidden');
             this.nameModal.classList.remove('hidden');
             queueMicrotask(() => this.newRuleSetNameInput.focus());
         });
-        this.closeNameModalBtn?.addEventListener('click', () => this.nameModal.classList.add('hidden'));
+        this.duplicateRuleSetBtn?.addEventListener('click', () => this._duplicateActiveRuleSet());
+        this.closeNameModalBtn?.addEventListener('click', () => this._closeNameModal());
         this.nameModal?.addEventListener('click', (event) => {
-            if (event.target === this.nameModal) this.nameModal.classList.add('hidden');
+            if (event.target === this.nameModal) this._closeNameModal();
         });
         this.newRuleSetNameInput?.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
@@ -55,7 +65,7 @@ _bindRuleSetEvents() {
                 return;
             }
             this._createRuleSet(name);
-            this.nameModal.classList.add('hidden');
+            this._closeNameModal();
             this._showToast(`「${name}」を作成しました`);
         });
 
@@ -83,6 +93,13 @@ _bindRuleSetEvents() {
         });
     },
 
+_closeNameModal() {
+        this.nameModal?.classList.add('hidden');
+        const returnFocus = this._nameModalReturnFocus;
+        this._nameModalReturnFocus = null;
+        returnFocus?.focus?.();
+    },
+
 populateRuleSetSelector() {
         if (!this.ruleSetSelector) return;
         this.ruleSetSelector.innerHTML = '';
@@ -107,6 +124,30 @@ _createRuleSet(name) {
         this.renderRulesList();
         this.analyzeText();
         return true;
+    },
+
+_duplicateActiveRuleSet() {
+        const originalName = this.activeSetName;
+        const suffix = ' のコピー';
+        const baseName = `${originalName.slice(0, Math.max(1, 120 - suffix.length))}${suffix}`;
+        let name = baseName;
+        let number = 2;
+        while (Object.hasOwn(this.allRuleSets, name)) {
+            const numberedSuffix = ` のコピー ${number++}`;
+            name = `${originalName.slice(0, Math.max(1, 120 - numberedSuffix.length))}${numberedSuffix}`;
+        }
+        this.allRuleSets[name] = cloneRules(this.rules);
+        this.activeSetName = name;
+        this._syncActiveRules();
+        this.storageManager.saveAllRuleSets(this.allRuleSets);
+        this.storageManager.saveActiveSetName(name);
+        this.populateRuleSetSelector();
+        this.renderRulesList();
+        this.analyzeText();
+        this._closeSidePanel(false);
+        this.ruleSetSelector?.focus?.();
+        this._showToast(`「${originalName}」を複製しました`, 'fa-copy');
+        return name;
     },
 
 _isSafeRuleSetName(name) {

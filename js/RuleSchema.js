@@ -133,27 +133,53 @@ function collectRawRanges(text) {
     return ranges;
 }
 
-function sameScopes(left, right) {
-    if (left.size !== right.size) return false;
-    for (const scope of left) if (!right.has(scope)) return false;
-    return true;
+function sameScopeLists(left, right) {
+    return left.length === right.length && left.every((scope, index) => scope === right[index]);
 }
 
+/**
+ * URL・メール・コードの重なりを、イベント走査で重複のない区間へ変換する。
+ * 以前の「全境界 × 全範囲」走査を避け、保護対象が多い文章でも伸びにくくする。
+ */
 export function collectScopedRanges(text) {
     const rawRanges = collectRawRanges(text);
     if (rawRanges.length === 0) return [];
-    const points = [...new Set(rawRanges.flatMap(({ start, end }) => [start, end]))].sort((a, b) => a - b);
+
+    const events = rawRanges.flatMap(({ start, end, scope }) => [
+        { position: start, scope, delta: 1 },
+        { position: end, scope, delta: -1 }
+    ]).sort((left, right) => left.position - right.position || left.delta - right.delta);
+
+    const active = new Map();
     const ranges = [];
-    for (let index = 0; index < points.length - 1; index++) {
-        const start = points[index];
-        const end = points[index + 1];
-        if (start === end) continue;
-        const scopes = new Set(rawRanges.filter((range) => range.start < end && range.end > start).map((range) => range.scope));
-        if (scopes.size === 0) continue;
-        const previous = ranges[ranges.length - 1];
-        if (previous && previous.end === start && sameScopes(new Set(previous.scopes), scopes)) previous.end = end;
-        else ranges.push({ start, end, scopes: [...scopes] });
+    let cursor = events[0].position;
+    let index = 0;
+
+    while (index < events.length) {
+        const position = events[index].position;
+        const scopes = [...active.entries()]
+            .filter(([, count]) => count > 0)
+            .map(([scope]) => scope)
+            .sort();
+
+        if (position > cursor && scopes.length > 0) {
+            const previous = ranges[ranges.length - 1];
+            if (previous && previous.end === cursor && sameScopeLists(previous.scopes, scopes)) {
+                previous.end = position;
+            } else {
+                ranges.push({ start: cursor, end: position, scopes });
+            }
+        }
+
+        while (index < events.length && events[index].position === position) {
+            const event = events[index++];
+            const nextCount = (active.get(event.scope) || 0) + event.delta;
+            if (nextCount > 0) active.set(event.scope, nextCount);
+            else active.delete(event.scope);
+        }
+        cursor = position;
     }
+
     return ranges;
 }
 
@@ -161,9 +187,25 @@ export function overlaps(leftStart, leftEnd, rightStart, rightEnd) {
     return leftStart < rightEnd && leftEnd > rightStart;
 }
 
+/**
+ * collectScopedRangesの結果は開始位置順なので、二分探索で最初の候補まで移動する。
+ */
 export function isMatchExcluded(ranges, start, end, excludeScopes) {
-    if (!Array.isArray(excludeScopes) || excludeScopes.length === 0) return false;
-    return ranges.some((range) => overlaps(start, end, range.start, range.end) && range.scopes.some((scope) => excludeScopes.includes(scope)));
+    if (!Array.isArray(excludeScopes) || excludeScopes.length === 0 || !Array.isArray(ranges) || ranges.length === 0) {
+        return false;
+    }
+    const excluded = new Set(excludeScopes);
+    let low = 0;
+    let high = ranges.length;
+    while (low < high) {
+        const middle = (low + high) >> 1;
+        if (ranges[middle].end <= start) low = middle + 1;
+        else high = middle;
+    }
+    for (let index = low; index < ranges.length && ranges[index].start < end; index++) {
+        if (ranges[index].scopes.some((scope) => excluded.has(scope))) return true;
+    }
+    return false;
 }
 
 export const SAFE_REGEX_TEMPLATES = Object.freeze([

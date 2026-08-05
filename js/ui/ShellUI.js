@@ -29,11 +29,11 @@ _bindKeyboardEvents() {
                     return;
                 }
                 if (this.confirmModal && !this.confirmModal.classList.contains('hidden')) {
-                    this.confirmModal.classList.add('hidden');
+                    this._closeConfirmModal?.();
                     return;
                 }
                 if (this.nameModal && !this.nameModal.classList.contains('hidden')) {
-                    this.nameModal.classList.add('hidden');
+                    this._closeNameModal?.();
                     return;
                 }
                 this._closeSidePanel();
@@ -42,15 +42,25 @@ _bindKeyboardEvents() {
     },
 
 _openSidePanel() {
+        if (this.sidePanel?.classList.contains('hidden')) {
+            this._sidePanelReturnFocus = typeof document !== 'undefined' ? document.activeElement : null;
+        }
         this.sidePanelToggle?.setAttribute('aria-expanded', 'true');
         this.sidePanel?.classList.remove('hidden');
         this.sidePanelOverlay?.classList.remove('hidden');
+        queueMicrotask(() => this.sidePanelClose?.focus());
     },
 
-_closeSidePanel() {
+_closeSidePanel(restoreFocus = true) {
+        const wasOpen = this.sidePanel && !this.sidePanel.classList.contains('hidden');
         this.sidePanelToggle?.setAttribute('aria-expanded', 'false');
         this.sidePanel?.classList.add('hidden');
         this.sidePanelOverlay?.classList.add('hidden');
+        if (wasOpen) {
+            const returnFocus = this._sidePanelReturnFocus;
+            this._sidePanelReturnFocus = null;
+            if (restoreFocus) returnFocus?.focus?.();
+        }
     },
 
 _showConfirm(message, onConfirm, options = {}) {
@@ -58,14 +68,23 @@ _showConfirm(message, onConfirm, options = {}) {
             onConfirm?.();
             return;
         }
+        this._confirmReturnFocus = typeof document !== 'undefined' ? document.activeElement : null;
         this.confirmModalMsg.textContent = message;
         this.confirmModalOkBtn.textContent = options.okText || '実行する';
         this.confirmModalOkBtn.classList.toggle('btn-danger', options.danger === true);
         this.confirmModal.classList.remove('hidden');
-        const close = () => this.confirmModal.classList.add('hidden');
+        const close = () => this._closeConfirmModal();
         this.confirmModalOkBtn.onclick = () => { close(); onConfirm?.(); };
         this.confirmModalCancelBtn.onclick = close;
         this.closeConfirmModalBtn.onclick = close;
+        queueMicrotask(() => (options.danger ? this.confirmModalCancelBtn : this.confirmModalOkBtn)?.focus());
+    },
+
+_closeConfirmModal() {
+        this.confirmModal?.classList.add('hidden');
+        const returnFocus = this._confirmReturnFocus;
+        this._confirmReturnFocus = null;
+        returnFocus?.focus?.();
     },
 
 _showToast(message, iconName = 'fa-check') {
@@ -74,10 +93,11 @@ _showToast(message, iconName = 'fa-check') {
         this.toast.innerHTML = '';
         const icon = document.createElement('i');
         icon.className = iconName.includes(' ') ? iconName : `fa-solid ${iconName}`;
+        icon.setAttribute('aria-hidden', 'true');
         this.toast.append(icon);
         appendText(this.toast, ` ${message}`);
         this.toast.classList.remove('hidden');
-        this._toastTimer = setTimeout(() => this.toast.classList.add('hidden'), 3200);
+        this._toastTimer = setTimeout(() => this.toast.classList.add('hidden'), 4200);
     },
 
 _shouldUseWorkerForText(text) {
@@ -122,14 +142,16 @@ _ensureTokenizeWorker() {
 
 _analyzeTokensInWorker(text) {
         return new Promise((resolve, reject) => {
+            if (this._workerPending.size > 0) this._disposeTokenizeWorker();
             const worker = this._ensureTokenizeWorker();
             if (!worker) return reject(new Error('worker_unavailable'));
             const requestId = ++this._workerRequestSeq;
+            const timeoutMs = Math.min(10000, 3500 + Math.ceil(text.length / 50000) * 1200);
             const timeoutId = setTimeout(() => {
                 this._workerPending.delete(requestId);
                 this._disposeTokenizeWorker();
                 reject(new Error('worker_timeout'));
-            }, 2500);
+            }, timeoutMs);
             this._workerPending.set(requestId, { resolve, reject, timeoutId });
             worker.postMessage({ requestId, text, rules: this.rules });
         });

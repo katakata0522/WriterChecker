@@ -29,6 +29,7 @@ export class UIManager {
         this._analysisTokensSource = 'sync';
         this._latestAnalysis = null;
         this._hasUnsavedEdits = false;
+        this._ruleDraft = null;
         this._lastTrackedAnalysisKey = '';
         this._hasTrackedInputStart = false;
         this._groupCursor = new Map();
@@ -37,6 +38,7 @@ export class UIManager {
         this.populateRuleSetSelector();
         this.renderRulesList();
         this._updateSaveStateStatus();
+        this._updateActionAvailability('', []);
     }
 
     _cacheElements() {
@@ -53,6 +55,7 @@ export class UIManager {
         this.charCount = byId('charCount');
         this.ruleSetSelector = byId('ruleSetSelector');
         this.addRuleSetBtn = byId('addRuleSetBtn');
+        this.duplicateRuleSetBtn = byId('duplicateRuleSetBtn');
         this.deleteRuleSetBtn = byId('deleteRuleSetBtn');
         this.editRulesBtn = byId('editRulesBtn');
         this.ruleModal = byId('ruleModal');
@@ -61,6 +64,7 @@ export class UIManager {
         this.rulesList = byId('rulesList');
         this.addRuleBtn = byId('addRuleBtn');
         this.ruleSearchInput = byId('ruleSearchInput');
+        this.ruleSearchStatus = byId('ruleSearchStatus');
         this.regexTemplateBtn = byId('regexTemplateBtn');
         this.saveStateStatus = byId('saveStateStatus');
         this.nameModal = byId('nameModal');

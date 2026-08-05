@@ -48,8 +48,8 @@
             window.gtag('config', GA_ID, { anonymize_ip: true });
         })();
     </script>
-    <link rel="stylesheet" href="style.min.css?v=20260805a">
-    <link rel="stylesheet" href="style-v3.css?v=20260805a">
+    <link rel="stylesheet" href="style.min.css?v=20260806a">
+    <link rel="stylesheet" href="style-v3.css?v=20260806a">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
 
     <script type="application/ld+json">{
@@ -118,6 +118,7 @@
                 <h3>ルールセット</h3>
                 <div class="side-panel-actions">
                     <button id="addRuleSetBtn" class="btn btn-sm btn-outline" type="button"><i class="fa-solid fa-plus" aria-hidden="true"></i> 新規作成</button>
+                    <button id="duplicateRuleSetBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-copy" aria-hidden="true"></i> 複製</button>
                     <button id="deleteRuleSetBtn" class="btn btn-sm btn-ghost btn-danger-icon" type="button"><i class="fa-solid fa-trash" aria-hidden="true"></i> 削除</button>
                 </div>
             </section>
@@ -178,7 +179,7 @@
                     <button id="copyBtn" class="btn btn-sm btn-primary" type="button" title="自動修正可能な箇所を反映した文章をコピー"><i class="fa-solid fa-copy" aria-hidden="true"></i> 修正結果をコピー</button>
                 </div>
             </div>
-            <div id="resultOutput" class="result-content"><div class="placeholder-text">文章を貼り付けると、ルールに一致した箇所を表示します。</div></div>
+            <div id="resultOutput" class="result-content" aria-busy="false"><div class="placeholder-text">文章を貼り付けると、ルールに一致した箇所を表示します。</div></div>
         </section>
     </main>
 
@@ -192,7 +193,8 @@
                 <button id="closeModalBtn" class="btn-close" type="button" aria-label="閉じる"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </div>
             <div class="modal-toolbar">
-                <input type="search" id="ruleSearchInput" class="rule-search-input" placeholder="ルールを検索" aria-label="ルールを検索">
+                <input type="search" id="ruleSearchInput" class="rule-search-input" placeholder="ルールを検索" aria-label="ルールを検索" aria-describedby="ruleSearchStatus">
+                <span id="ruleSearchStatus" class="rule-search-status" aria-live="polite"></span>
                 <button id="regexTemplateBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> 安全テンプレート</button>
                 <button id="addRuleBtn" class="btn btn-sm btn-outline" type="button"><i class="fa-solid fa-plus" aria-hidden="true"></i> 追加</button>
             </div>
@@ -241,6 +243,6 @@
         <button id="mobileSettingsBtn" class="btn btn-sm btn-ghost" type="button"><i class="fa-solid fa-sliders" aria-hidden="true"></i> 設定</button>
     </nav>
 
-    <script type="module" src="js/app.js?v=20260805a"></script>
+    <script type="module" src="js/app.js?v=20260806a"></script>
 </body>
 </html>

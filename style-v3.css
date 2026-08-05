@@ -17,6 +17,7 @@
 .result-title { min-width: 0; }
 .result-summary { margin-top: .15rem; font-size: .78rem; color: var(--text-muted); white-space: normal; }
 .result-actions { align-items: center; }
+.result-content[aria-busy="true"] { cursor: progress; }
 .badge-count--ok { background: #dcfce7; color: #166534; }
 .badge-count--error { background: var(--wc-error-bg); color: var(--wc-error); }
 .badge-count--warning { background: var(--wc-warning-bg); color: var(--wc-warning); }
@@ -63,10 +64,15 @@
 .modal-toolbar { display: flex; align-items: center; gap: .5rem; padding: .75rem 1rem; border-bottom: 1px solid var(--border-color); }
 .rule-search-input { flex: 1; width: auto; min-width: 160px; }
 .rule-search-input:focus { width: auto; }
+.rule-search-status { flex: none; min-width: 4.5rem; color: var(--text-muted); font-size: .75rem; text-align: right; }
 .rule-modal-body { padding: 1rem; }
 .rule-item { display: block; cursor: default; padding: .7rem; }
-.rule-item-main { display: grid; grid-template-columns: auto minmax(150px, 1fr) auto minmax(150px, 1fr) minmax(90px, .5fr) auto; align-items: center; gap: .45rem; }
+.rule-item-main { display: grid; grid-template-columns: auto minmax(150px, 1fr) auto minmax(150px, 1fr) minmax(90px, .5fr) auto auto; align-items: center; gap: .45rem; }
 .rule-item .rule-input, .rule-item select, .rule-advanced input { min-width: 0; width: 100%; padding: .5rem .6rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--surface-color); color: var(--text-main); font: inherit; font-size: .84rem; }
+.rule-order-controls { display: inline-flex; gap: .2rem; }
+.btn-rule-move { display: inline-grid; place-items: center; width: 1.9rem; height: 1.9rem; padding: 0; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; }
+.btn-rule-move:hover:not(:disabled) { border-color: var(--primary-color); color: var(--primary-color); }
+.btn-rule-move:disabled { opacity: .35; cursor: not-allowed; }
 .rule-advanced { margin-top: .55rem; border-top: 1px dashed var(--border-color); padding-top: .45rem; }
 .rule-advanced summary { cursor: pointer; color: var(--text-muted); font-size: .78rem; font-weight: 600; }
 .rule-advanced-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; margin-top: .55rem; }
@@ -86,25 +92,29 @@
 .side-panel-note { margin-bottom: .55rem; color: var(--text-muted); font-size: .78rem; line-height: 1.55; }
 .data-actions .btn { flex: 1 1 auto; }
 .mobile-action-bar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mobile-action-bar .btn:disabled { opacity: .45; cursor: not-allowed; }
 
 @media (max-width: 900px) {
     .app-main { grid-template-columns: 1fr; grid-template-rows: minmax(360px, 1fr) minmax(360px, 1fr); overflow-y: auto; }
     .rule-item-main { grid-template-columns: auto minmax(0, 1fr) auto; }
-    .rule-item-main .rule-replacement, .rule-item-main .rule-severity, .rule-item-main .btn-remove-rule { grid-column: auto; }
     .rule-item-main .rule-arrow { display: none; }
+    .rule-item-main .rule-target { grid-column: 2 / 4; }
+    .rule-item-main .rule-replacement { grid-column: 2 / 4; }
+    .rule-item-main .rule-severity { grid-column: 2; }
+    .rule-item-main .rule-order-controls { grid-column: 3; }
+    .rule-item-main .btn-remove-rule { grid-column: 1; grid-row: 3; }
 }
 
 @media (max-width: 768px) {
     .app-main { padding: .75rem .75rem 6rem; }
-    .result-actions { justify-content: flex-start; }
-    .result-actions #copyBtn, .result-actions #replaceBtn { flex: 1 1 auto; }
+    .result-actions { margin-left: auto; justify-content: flex-end; }
+    .result-actions > #copyBtn, .result-actions > #replaceBtn { display: none; }
     .issue-panel-header { align-items: flex-start; flex-direction: column; }
     .issue-disable-rule { margin-left: 0; }
     .modal-toolbar { flex-wrap: wrap; }
-    .modal-toolbar .rule-search-input { flex-basis: 100%; }
-    .rule-item-main { grid-template-columns: auto 1fr auto; }
-    .rule-item-main .rule-target, .rule-item-main .rule-replacement, .rule-item-main .rule-severity { grid-column: 2 / 4; }
-    .rule-item-main .btn-remove-rule { grid-column: 1; grid-row: 4; }
+    .modal-toolbar .rule-search-input { flex-basis: calc(100% - 5rem); }
+    .rule-search-status { order: 2; }
+    .modal-toolbar #regexTemplateBtn, .modal-toolbar #addRuleBtn { flex: 1 1 auto; }
     .rule-advanced-grid { grid-template-columns: 1fr; }
 }
 

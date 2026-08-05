@@ -8,11 +8,13 @@ _bindTextEvents() {
                 this._hasTrackedInputStart = true;
                 this._track('text_input_started', { ruleset_name: this.activeSetName });
             }
+            this._setAnalysisBusy(Boolean(this.sourceText.value));
+            this._updateActionAvailability(this.sourceText.value, null);
             this._analyzeTextDebounced();
         });
         this.clearBtn?.addEventListener('click', () => {
-            if (this.sourceText.value) this._pushUndo(this.sourceText.value);
-            this.sourceText.value = '';
+            if (!this.sourceText.value) return;
+            this._replaceTextareaContent('');
             this.analyzeText();
             this.sourceText.focus?.();
         });
@@ -69,8 +71,12 @@ analyzeText() {
             this._hasTrackedInputStart = false;
             this._lastTrackedAnalysisKey = '';
             this._updateBadgeStyle({ error: 0, warning: 0, info: 0 });
+            this._setAnalysisBusy(false);
+            this._updateActionAvailability('', []);
             return Promise.resolve();
         }
+        this._setAnalysisBusy(true);
+        this._updateActionAvailability(text, null);
         return this._tokenizeForAnalysis(text).then((tokens) => {
             if (requestId !== this._analysisRequestSeq || this.sourceText.value !== text) return;
             this._renderAnalysisResult(text, tokens);
@@ -111,7 +117,7 @@ _renderAnalysisResult(text, tokens) {
             span.setAttribute('aria-label', span.title);
             span.textContent = issue.target;
             fragment.appendChild(span);
-            if (issue.autoFix && issue.replacement) {
+            if (issue.autoFix && issue.replacement && issue.replacement !== issue.target) {
                 const inserted = document.createElement('span');
                 inserted.className = 'inserted';
                 inserted.textContent = issue.replacement;
@@ -127,6 +133,8 @@ _renderAnalysisResult(text, tokens) {
             : '指摘なし';
         this._updateBadgeStyle(counts);
         this._latestAnalysis = { text, tokens, issues, counts, manualCount };
+        this._setAnalysisBusy(false);
+        this._updateActionAvailability(text, issues);
 
         const analysisKey = `${issues.length}:${counts.error}:${counts.warning}:${this.activeSetName}:${text.length}`;
         if (analysisKey !== this._lastTrackedAnalysisKey) {
@@ -165,6 +173,26 @@ _buildIssueDetail(token) {
             start: Number.isInteger(token.start) ? token.start : 0,
             end: Number.isInteger(token.end) ? token.end : 0
         };
+    },
+
+_setAnalysisBusy(isBusy) {
+        this.resultOutput?.setAttribute('aria-busy', String(isBusy));
+        if (isBusy && this.sourceText?.value) this.matchCountStatus.textContent = '解析中…';
+    },
+
+_updateActionAvailability(text, issues = null) {
+        const hasText = Boolean(text);
+        const analysisReady = Array.isArray(issues);
+        const autoFixCount = analysisReady
+            ? issues.filter((issue) => issue.autoFix && issue.replacement !== issue.target).length
+            : 0;
+        const replaceDisabled = !hasText || !analysisReady || autoFixCount === 0;
+        if (this.replaceBtn) this.replaceBtn.disabled = replaceDisabled;
+        if (this.mobileReplaceBtn) this.mobileReplaceBtn.disabled = replaceDisabled;
+        if (this.copyBtn) this.copyBtn.disabled = !hasText;
+        if (this.mobileCopyBtn) this.mobileCopyBtn.disabled = !hasText;
+        if (this.clearBtn) this.clearBtn.disabled = !hasText;
+        if (this.sampleBtn) this.sampleBtn.hidden = hasText;
     },
 
 _updateStatusBar(text) {

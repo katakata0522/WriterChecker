@@ -1,5 +1,5 @@
 /** Writer Checker Service Worker */
-const CACHE_VERSION = '20260805-usability-v1';
+const CACHE_VERSION = '20260806-polish-v2';
 const STATIC_CACHE_NAME = `writer-checker-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `writer-checker-runtime-${CACHE_VERSION}`;
 
