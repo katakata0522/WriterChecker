@@ -5,6 +5,8 @@
     "description": "レギュレーション・チェッカー — 文章の表記ユレやAI装飾をカスタムルールで一括チェック＆修正",
     "private": true,
     "scripts": {
+      "dev": "node scripts/ai-studio-preview.mjs",
+      "start": "node scripts/ai-studio-preview.mjs",
         "build:css": "node scripts/build-css.mjs",
         "test": "node --test tests/*.test.mjs",
         "test:regression": "node --test tests/lighthouseFixes.test.mjs tests/perfOptimizations.test.mjs tests/regressionAutomation.test.mjs",
